@@ -1,0 +1,643 @@
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
+
+# ============================================================
+# CATEGORY
+# ============================================================
+
+class CategoryResponse(BaseModel):
+    id: int
+    category_name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CategoryCreate(BaseModel):
+    category_name: str
+
+
+# ============================================================
+# SUBCATEGORY
+# ============================================================
+
+class SubCategoryResponse(BaseModel):
+    id: int
+    category_id: int
+    subcategory_name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SubCategoryCreate(BaseModel):
+    category_id: int
+    subcategory_name: str
+
+
+# ============================================================
+# EXPENSE CREATE
+# ============================================================
+
+class ExpenseCreate(BaseModel):
+    expense_date: date
+    title: str
+    description: Optional[str] = None
+
+    category_id: int
+    subcategory_id: Optional[int] = None
+
+    amount: Decimal
+
+    payment_method: str
+
+    created_by: int
+
+    remarks: Optional[str] = None
+
+    # Payment details
+    cheque_number: Optional[str] = None
+    account_last_four: Optional[str] = None
+    transaction_reference: Optional[str] = None
+    bank_name: Optional[str] = None
+
+
+# ============================================================
+# EXPENSE UPDATE
+# ============================================================
+
+class ExpenseUpdate(BaseModel):
+    expense_date: Optional[date] = None
+
+    title: Optional[str] = None
+
+    description: Optional[str] = None
+
+    category_id: Optional[int] = None
+
+    subcategory_id: Optional[int] = None
+
+    amount: Optional[Decimal] = None
+
+    payment_method: Optional[str] = None
+
+    remarks: Optional[str] = None
+
+
+# ============================================================
+# EXPENSE RESPONSE
+# ============================================================
+
+class ExpenseResponse(BaseModel):
+
+    id: int
+
+    expense_number: str
+
+    expense_date: date
+
+    title: str
+
+    description: Optional[str] = None
+
+    category: Optional[CategoryResponse] = None
+
+    subcategory: Optional[SubCategoryResponse] = None
+
+    amount: Decimal
+
+    payment_method: str
+
+    status: str
+
+    created_by: int
+
+    approved_by: Optional[int] = None
+
+    approved_at: Optional[datetime] = None
+
+    paid_at: Optional[datetime] = None
+
+    remarks: Optional[str] = None
+
+    created_at: datetime
+
+    updated_at: datetime
+
+    receipt_name: Optional[str] = None
+
+    receipt_type: Optional[str] = None
+
+    receipt_image: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# EXPENSE APPROVAL
+# ============================================================
+
+class ExpenseApproval(BaseModel):
+
+    approved_by: int
+
+
+# ============================================================
+# EXPENSE REJECTION
+# ============================================================
+
+class ExpenseReject(BaseModel):
+
+    approved_by: int
+
+    remarks: str
+
+
+# ============================================================
+# PAYMENT METHOD RESPONSE
+# ============================================================
+
+class PaymentMethodResponse(BaseModel):
+
+    id: int
+
+    payment_method_name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class PaymentReportResponse(BaseModel):
+    expense_id: int
+    expense_number: str
+    title: str
+    amount: Decimal
+
+    created_by: int
+
+    payment_method_id: int
+    payment_method_name: str
+
+    cheque_number: Optional[str] = None
+    account_last_four: Optional[str] = None
+    transaction_reference: Optional[str] = None
+    bank_name: Optional[str] = None
+
+    payment_date: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class PaymentMethodCreate(BaseModel):
+
+    payment_method_name: str
+
+
+# ============================================================
+# EXPENSE PAYMENT CREATE
+# ============================================================
+
+class ExpensePaymentCreate(BaseModel):
+
+    expense_id: int
+
+    payment_method_id: int
+
+    cheque_number: Optional[str] = None
+
+    account_last_four: Optional[str] = None
+
+    transaction_reference: Optional[str] = None
+
+    bank_name: Optional[str] = None
+
+    payment_date: Optional[datetime] = None
+
+    remarks: Optional[str] = None
+
+
+# ============================================================
+# EXPENSE PAYMENT RESPONSE
+# ============================================================
+
+class ExpensePaymentResponse(BaseModel):
+
+    id: int
+
+    expense_id: int
+
+    payment_method_id: int
+
+    cheque_number: Optional[str] = None
+
+    account_last_four: Optional[str] = None
+
+    transaction_reference: Optional[str] = None
+
+    bank_name: Optional[str] = None
+
+    payment_date: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# EXPENSE PAID
+# ============================================================
+
+class ExpensePaid(BaseModel):
+
+    paid_by: int
+
+    payment_method_id: int
+
+    cheque_number: Optional[str] = None
+
+    account_last_four: Optional[str] = None
+
+    transaction_reference: Optional[str] = None
+
+    bank_name: Optional[str] = None
+
+    payment_date: Optional[datetime] = None
+
+    remarks: Optional[str] = None
+
+
+# ============================================================
+# DASHBOARD
+# ============================================================
+
+class DashboardResponse(BaseModel):
+
+    total_expenses: int
+
+    pending: int
+
+    approved: int
+
+    rejected: int
+
+    paid: int
+
+    total_amount: Decimal = Decimal("0")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# REPORT
+# ============================================================
+
+class ReportResponse(BaseModel):
+
+    category_name: str
+
+    total_amount: Decimal
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+# ============================================================
+# EXPENSE PAYMENT DETAIL (drill-down by payment method)
+# ============================================================
+
+class ExpensePaymentDetailResponse(BaseModel):
+
+    payment_id: int
+
+    expense_id: int
+
+    expense_number: str
+
+    title: str
+
+    expense_date: date
+
+    amount: Decimal
+
+    status: str
+
+    created_by: int
+
+    payment_method_id: int
+
+    payment_method_name: str
+
+    cheque_number: Optional[str] = None
+
+    account_last_four: Optional[str] = None
+
+    transaction_reference: Optional[str] = None
+
+    bank_name: Optional[str] = None
+
+    payment_date: Optional[datetime] = None
+
+    remarks: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# EXPENSE PAYMENT UPDATE (correct/add cheque & other details)
+# ============================================================
+
+class ExpensePaymentUpdate(BaseModel):
+
+    cheque_number: Optional[str] = None
+
+    account_last_four: Optional[str] = None
+
+    transaction_reference: Optional[str] = None
+
+    bank_name: Optional[str] = None
+
+    payment_date: Optional[datetime] = None
+
+
+class PaymentMethodReportResponse(BaseModel):
+    payment_method_id: int
+    payment_method_name: str
+    payment_count: int
+    total_amount: Decimal
+
+
+
+# ============================================================
+# PAYMENT PERIOD REPORT
+# ============================================================
+
+
+class PaymentPeriodReportResponse(BaseModel):
+    payment_method_id:int
+    payment_method_name:str
+    payment_count:int
+    total_amount:Decimal
+
+    model_config = ConfigDict(from_attributes=True)
+
+# ============================================================
+# PAYMENT PERIOD DETAIL
+# ============================================================
+
+class PaymentPeriodDetailResponse(BaseModel):
+    payment_id:int
+    expense_id:int
+
+    expense_number:str
+    title:str
+    expense_date:date
+    amount:Decimal
+    status: str
+    created_by: int
+
+    payment_method_id: int
+    payment_method_name: str
+
+    cheque_number: Optional[str] = None
+    account_last_four: Optional[str] = None
+    transaction_reference: Optional[str] = None
+    bank_name: Optional[str] = None
+
+    payment_date: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+
+
+# ============================================================
+# SUB-VENDOR CATEGORY REQUEST
+# ============================================================
+
+class CategoryRequestCreate(BaseModel):
+
+    category_name: str
+
+    requested_by: int
+
+    remarks: Optional[str] = None
+
+
+class CategoryRequestResponse(BaseModel):
+
+    id: int
+
+    category_name: str
+
+    requested_by: int
+
+    status: str
+
+    remarks: Optional[str] = None
+
+    approved_by: Optional[int] = None
+
+    approved_at: Optional[datetime] = None
+
+    rejection_reason: Optional[str] = None
+
+    created_at: Optional[datetime] = None
+
+    updated_at: Optional[datetime] = None
+
+    class Config:
+
+        from_attributes = True
+
+
+# ============================================================
+# SUB-VENDOR SUB-CATEGORY REQUEST
+# ============================================================
+
+class SubCategoryRequestCreate(BaseModel):
+
+    category_id: int
+
+    subcategory_name: str
+
+    requested_by: int
+
+    remarks: Optional[str] = None
+
+
+class SubCategoryRequestResponse(BaseModel):
+
+    id: int
+
+    category_id: int
+
+    subcategory_name: str
+
+    requested_by: int
+
+    status: str
+
+    remarks: Optional[str] = None
+
+    approved_by: Optional[int] = None
+
+    approved_at: Optional[datetime] = None
+
+    rejection_reason: Optional[str] = None
+
+    created_at: Optional[datetime] = None
+
+    updated_at: Optional[datetime] = None
+
+    class Config:
+
+        from_attributes = True
+
+
+# ============================================================
+# ADMIN CATEGORY REQUEST ACTIONS
+# ============================================================
+
+class CategoryRequestApproval(BaseModel):
+    approved_by: int
+
+
+class CategoryRequestRejection(BaseModel):
+    rejected_by: int
+    rejection_reason: str
+
+
+# ============================================================
+# ADMIN SUBCATEGORY REQUEST ACTIONS
+# ============================================================
+
+class SubCategoryRequestApproval(BaseModel):
+    approved_by: int
+
+
+class SubCategoryRequestRejection(BaseModel):
+    rejected_by: int
+    rejection_reason: str        
+
+
+# ============================================================
+# SUB-VENDOR ACTIVITY LOG
+# ============================================================
+
+class SubVendorActivityResponse(BaseModel):
+
+    id: int
+
+    user_id: int
+
+    action: str
+
+    module: str
+
+    record_id: Optional[int] = None
+
+    description: Optional[str] = None
+
+    status: str
+
+    details: Optional[str] = None
+
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True   
+
+
+
+# ============================================================
+# SUB-VENDOR MANAGEMENT
+# ============================================================
+
+class SubVendorCreate(BaseModel):
+
+    name: str
+
+    email: str
+
+    phone: Optional[str] = None
+
+    password: str
+
+
+class SubVendorUpdate(BaseModel):
+
+    name: Optional[str] = None
+
+    email: Optional[str] = None
+
+    phone: Optional[str] = None
+
+    password: Optional[str] = None
+
+
+class SubVendorResponse(BaseModel):
+
+    id: int
+
+    name: str
+
+    email: str
+
+    phone: Optional[str] = None
+
+    is_active: bool
+
+    created_at: datetime
+
+    updated_at: datetime
+
+    class Config:
+
+        from_attributes = True
+
+
+class SubVendorLogin(BaseModel):
+    email:str
+    password:str
+
+
+
+class CategoryPeriodReportResponse(BaseModel):
+
+    category_id: int
+
+    category_name: str
+
+    expense_count: int
+
+    total_amount: Decimal
+
+
+class SubCategoryPeriodReportResponse(BaseModel):
+
+    subcategory_id: int
+
+    category_id: int
+
+    category_name: str
+
+    subcategory_name: str
+
+    expense_count: int
+
+    total_amount: Decimal
+
+
+class CategorySubCategoryPeriodReportResponse(BaseModel):
+
+    period: str
+
+    start_date: date
+
+    end_date: date
+
+    category_report: list[
+        CategoryPeriodReportResponse
+    ]
+
+    subcategory_report: list[
+        SubCategoryPeriodReportResponse
+    ]    

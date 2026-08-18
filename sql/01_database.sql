@@ -1,0 +1,2 @@
+CREATE DATABASE expense_management;
+USE expense_management;

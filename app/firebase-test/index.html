@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Expense Management - Firebase Test</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-top: 10px;
+        }
+
+        .box {
+            padding: 15px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Expense Management Firebase Test</h1>
+
+    <button id="enableNotifications">
+        Enable Notifications
+    </button>
+
+    <div class="box">
+
+        <h3>FCM Device Token</h3>
+
+        <textarea
+            id="token"
+            readonly
+            placeholder="FCM token will appear here..."
+        ></textarea>
+
+    </div>
+
+    <div class="box">
+
+        <h3>Backend Registration</h3>
+
+        <button id="registerToken">
+            Register Token With FastAPI
+        </button>
+
+        <pre id="result"></pre>
+
+    </div>
+
+
+    <script type="module">
+
+        import { initializeApp }
+            from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+        import {
+            getMessaging,
+            getToken,
+            onMessage
+        }
+        from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+
+
+        // =====================================================
+        // FIREBASE CONFIGURATION
+        // =====================================================
+
+        const firebaseConfig = {
+
+            apiKey: "AIzaSyAw3OXhbhci1IUV-IhEN_dn2j2Z7R9dDuQ",
+
+            authDomain:
+                "expense-management-syste-b7da5.firebaseapp.com",
+
+            projectId:
+                "expense-management-syste-b7da5",
+
+            storageBucket:
+                "expense-management-syste-b7da5.firebasestorage.app",
+
+            messagingSenderId:
+                "751535863751",
+
+            appId:
+                "1:751535863751:web:ab3f5e14b43eca354d0be2",
+
+            measurementId:
+                "G-17CECSNVV4"
+        };
+
+
+        // =====================================================
+        // INITIALIZE FIREBASE
+        // =====================================================
+
+        const app = initializeApp(firebaseConfig);
+
+        const messaging = getMessaging(app);
+
+
+        // =====================================================
+        // VAPID PUBLIC KEY
+        // =====================================================
+
+        const vapidKey =
+            "BAPtgMHsJmyjO24dR6YqIM6mrRlVNSQ-qNeqa6UYQ0DkEEhYP1l9scseeU0JOGkVUh2c7Vw9QhyPribc-wP4w3s";
+
+
+        let currentToken = null;
+
+
+        // =====================================================
+        // ENABLE NOTIFICATIONS
+        // =====================================================
+
+        document
+            .getElementById("enableNotifications")
+            .addEventListener("click", async () => {
+
+                try {
+
+                    console.log(
+                        "Requesting notification permission..."
+                    );
+
+                    const permission =
+                        await Notification.requestPermission();
+
+                    console.log(
+                        "Permission:",
+                        permission
+                    );
+
+
+                    if (permission !== "granted") {
+
+                        alert(
+                            "Notification permission was not granted."
+                        );
+
+                        return;
+                    }
+
+
+                    // Register service worker
+
+                    const registration =
+                        await navigator.serviceWorker.register(
+                            "/firebase-messaging-sw.js"
+                        );
+
+
+                    console.log(
+                        "Service worker registered:",
+                        registration
+                    );
+
+
+                    // Get FCM token
+
+                    currentToken = await getToken(
+                        messaging,
+                        {
+                            vapidKey: vapidKey,
+                            serviceWorkerRegistration:
+                                registration
+                        }
+                    );
+
+
+                    if (!currentToken) {
+
+                        alert(
+                            "FCM token could not be generated."
+                        );
+
+                        return;
+                    }
+
+
+                    console.log(
+                        "FCM TOKEN:",
+                        currentToken
+                    );
+
+
+                    document.getElementById("token").value =
+                        currentToken;
+
+
+                    alert(
+                        "FCM token generated successfully!"
+                    );
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        "FCM ERROR:",
+                        error
+                    );
+
+                    alert(
+                        "FCM Error: " +
+                        error.message
+                    );
+                }
+
+            });
+
+
+        // =====================================================
+        // REGISTER TOKEN WITH FASTAPI
+        // =====================================================
+
+        document
+            .getElementById("registerToken")
+            .addEventListener("click", async () => {
+
+                try {
+
+                    if (!currentToken) {
+
+                        alert(
+                            "First click Enable Notifications."
+                        );
+
+                        return;
+                    }
+
+
+                    const response = await fetch(
+                        "http://127.0.0.1:8080/notifications/register-token",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                user_id: 1,
+
+                                device_token:
+                                    currentToken
+                            })
+                        }
+                    );
+
+
+                    const data =
+                        await response.json();
+
+
+                    console.log(
+                        "Backend response:",
+                        data
+                    );
+
+
+                    document.getElementById("result")
+                        .textContent =
+                        JSON.stringify(
+                            data,
+                            null,
+                            2
+                        );
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        "Backend error:",
+                        error
+                    );
+
+                    document.getElementById("result")
+                        .textContent =
+                        error.message;
+                }
+
+            });
+
+
+        // =====================================================
+        // FOREGROUND MESSAGE
+        // =====================================================
+
+        onMessage(
+            messaging,
+            (payload) => {
+
+                console.log(
+                    "Foreground notification:",
+                    payload
+                );
+
+
+                alert(
+                    payload.notification?.title +
+                    "\n\n" +
+                    payload.notification?.body
+                );
+
+            }
+        );
+
+    </script>
+
+</body>
+</html>

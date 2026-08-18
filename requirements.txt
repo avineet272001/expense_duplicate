@@ -1,0 +1,18 @@
+fastapi
+uvicorn
+sqlalchemy
+sqlalchemy-utils
+psycopg2-binary
+pydantic
+python-multipart
+python-dotenv
+firebase-admin
+apscheduler
+reportlab
+
+# Run the combined app (expense module + admin module + both frontends) with:
+#   uvicorn app.main:app --reload --port 8080
+#
+# Employee UI:  http://localhost:8080/
+# Admin UI:     http://localhost:8080/admin-ui/
+# API docs:     http://localhost:8080/docs

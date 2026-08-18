@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Expense Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark">₹</span>
+      <span class="brand-name">Expense Management</span>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item is-active" data-view="dashboard">
+        <span class="nav-icon" aria-hidden="true">&#9635;</span>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item" data-view="expenses">
+        <span class="nav-icon" aria-hidden="true">&#9776;</span>
+        <span>Expenses</span>
+      </button>
+      <button class="nav-item" data-view="reports">
+        <span class="nav-icon" aria-hidden="true">&#9776;</span>
+        <span>Reports</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <a class="admin-link" href="/admin-ui/">
+        <span class="admin-link-icon" aria-hidden="true">&#9881;</span>
+        <span>Admin panel</span>
+      </a>
+      <div class="user-chip">
+        <div class="user-avatar">U</div>
+        <div>
+          <div class="user-name">Employee ID <span id="currentUserLabel">1</span></div>
+          <div class="user-sub">Local workspace</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="scrim" id="scrim"></div>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">&#9776;</button>
+      <div class="topbar-title">
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="pageSubtitle" class="muted">Overview of every rupee moving through the business.</p>
+      </div>
+      <button class="btn btn-primary" id="openAddExpense">
+        <span class="plus">+</span> New expense
+      </button>
+    </header>
+
+    <main class="content">
+
+      <!-- DASHBOARD VIEW -->
+      <section class="view is-active" id="view-dashboard">
+
+        <div class="stat-strip" id="statStrip">
+          <div class="stat-card stat-card--hero">
+            <span class="stat-label">Total tracked</span>
+            <span class="stat-value" id="statTotalAmount">₹0</span>
+            <span class="stat-foot"><span id="statTotalCount">0</span> expenses logged</span>
+          </div>
+          <div class="stat-card" data-status="Pending">
+            <span class="stat-dot dot-pending"></span>
+            <span class="stat-label">Pending</span>
+            <span class="stat-value" id="statPending">0</span>
+          </div>
+          <div class="stat-card" data-status="Approved">
+            <span class="stat-dot dot-approved"></span>
+            <span class="stat-label">Approved</span>
+            <span class="stat-value" id="statApproved">0</span>
+          </div>
+          <div class="stat-card" data-status="Rejected">
+            <span class="stat-dot dot-rejected"></span>
+            <span class="stat-label">Rejected</span>
+            <span class="stat-value" id="statRejected">0</span>
+          </div>
+          <div class="stat-card" data-status="Paid">
+            <span class="stat-dot dot-paid"></span>
+            <span class="stat-label">Paid</span>
+            <span class="stat-value" id="statPaid">0</span>
+          </div>
+        </div>
+
+        <div class="panel-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Spend by category</h2>
+              <span class="muted">Approved &amp; paid distribution</span>
+            </div>
+            <div id="categoryBars" class="bar-list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Recent activity</h2>
+              <button class="link-btn" data-view="expenses">View all</button>
+            </div>
+            <div id="recentList" class="recent-list"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- EXPENSES VIEW -->
+      <section class="view" id="view-expenses">
+
+        <div class="toolbar">
+          <div class="search-field">
+            <span class="search-icon" aria-hidden="true">&#8981;</span>
+            <input type="text" id="searchInput" placeholder="Search by title, expense # or category…">
+          </div>
+          <select id="filterStatus" class="select-field">
+            <option value="">All statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Paid">Paid</option>
+          </select>
+          <select id="filterCategory" class="select-field">
+            <option value="">All categories</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Expense</th>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="expenseTableBody">
+            </tbody>
+          </table>
+          <div id="emptyState" class="empty-state" hidden>
+            <p class="empty-title">No expenses match your filters</p>
+            <p class="muted">Try clearing the search or filters, or log a new expense.</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- REPORTS VIEW -->
+      <section class="view" id="view-reports">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Category report</h2>
+            <span class="muted">Lifetime total spend per category</span>
+          </div>
+          <div id="reportTableWrap"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- Add Expense Modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h2 id="modalTitle">New expense</h2>
+      <button class="icon-btn" id="closeModal" aria-label="Close">&times;</button>
+    </div>
+
+    <form id="expenseForm" class="modal-body">
+      <div class="form-grid">
+
+        <label class="field">
+          <span>Title</span>
+          <input type="text" name="title" required placeholder="e.g. Client dinner">
+        </label>
+
+        <label class="field">
+          <span>Expense date</span>
+          <input type="date" name="expense_date" required>
+        </label>
+
+        <label class="field">
+          <span>Category</span>
+          <select name="category_id" id="categorySelect" required>
+            <option value="">Select category</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Subcategory</span>
+          <select name="subcategory_id" id="subcategorySelect">
+            <option value="">Select subcategory</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Amount (₹)</span>
+          <input type="number" name="amount" min="0" step="0.01" required placeholder="0.00">
+        </label>
+
+        <label class="field">
+          <span>Payment method</span>
+          <select name="payment_method" required>
+            <option value="">Select method</option>
+            <option>Cash</option>
+            <option>UPI</option>
+            <option>Bank Transfer</option>
+            <option>Debit Card</option>
+            <option>Credit Card</option>
+            <option>Cheque</option>
+            <option>Net Banking
+            </option>
+            <option>NEFT</option>
+            <option>RTGS</option>
+            <option>IMPS</option>
+            <option>Wallet</option>
+          </select>
+        </label>
+
+        <div id="paymentDetails" class="payment-details" style="display: none;">
+
+  <label class="field">
+    <span>Cheque Number</span>
+    <input
+      type="text"
+      name="cheque_number"
+      id="chequeNumber"
+      placeholder="Enter cheque number"
+    />
+  </label>
+
+  <label class="field">
+    <span>Bank Name</span>
+    <input
+      type="text"
+      name="bank_name"
+      id="bankName"
+      placeholder="Enter bank name"
+    />
+  </label>
+
+</div>
+
+        <label class="field">
+          <span>Employee ID</span>
+          <input type="number" name="created_by" min="1" required value="1">
+        </label>
+
+        <label class="field field--file">
+          <span>Receipt (optional)</span>
+          <input type="file" name="receipt" accept="image/*,.pdf">
+        </label>
+
+        <label class="field field--wide">
+          <span>Description</span>
+          <textarea name="description" rows="2" placeholder="What was this for?"></textarea>
+        </label>
+
+        <label class="field field--wide">
+          <span>Remarks</span>
+          <textarea name="remarks" rows="2" placeholder="Optional internal note"></textarea>
+        </label>
+
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" id="cancelModal">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="submitExpense">Save expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Receipt viewer -->
+<div class="modal-backdrop" id="receiptBackdrop">
+  <div class="modal modal--small">
+    <div class="modal-head">
+      <h2>Receipt</h2>
+      <button class="icon-btn" id="closeReceiptModal" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body receipt-body" id="receiptBody"></div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
