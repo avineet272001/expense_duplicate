@@ -17,7 +17,6 @@ router = APIRouter(
     tags=["Admin Management"]
 )
 
-
 def get_db():
     db = SessionLocal()
 
@@ -26,45 +25,64 @@ def get_db():
     finally:
         db.close()
 
-
 # ============================================================
 # CATEGORY & SUBCATEGORY MANAGEMENT
 # ============================================================
 
-@router.post(
-    "/categories",
-    response_model=schemas.CategoryResponse
-)
-def create_category(
-    category: schemas.CategoryCreate,
+@router.post("/categories")
+def create_category_or_subcategory(
+    data: schemas.CategoryManagementCreate,
     db: Session = Depends(get_db)
 ):
     try:
-        return crud.create_category(db, category)
+
+        # ----------------------------------------------------
+        # CREATE CATEGORY
+        # ----------------------------------------------------
+
+        if data.type == "category":
+
+            category = schemas.CategoryCreate(
+                category_name=data.category_name
+            )
+
+            return crud.create_category(
+                db,
+                category
+            )
+
+        # ----------------------------------------------------
+        # CREATE SUBCATEGORY
+        # ----------------------------------------------------
+        if data.type == "subcategory":
+
+            if data.category_id is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="category_id is required for subcategory"
+                )
+
+            if not data.subcategory_name:
+                raise HTTPException(
+                    status_code=400,
+                    detail="subcategory_name is required"
+                )
+
+            subcategory_data = schemas.SubCategoryCreate(
+                category_id=data.category_id,
+                subcategory_name=data.subcategory_name
+            )
+
+            return crud.create_subcategory(
+                db,
+                subcategory_data
+            )
+
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
             detail=str(exc)
         )
-
-
-@router.post(
-    "/subcategories",
-    response_model=schemas.SubCategoryResponse
-)
-def create_subcategory(
-    subcategory: schemas.SubCategoryCreate,
-    db: Session = Depends(get_db)
-):
-    try:
-        return crud.create_subcategory(db, subcategory)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc)
-        )
-
-
 # ============================================================
 # PAYMENT METHODS
 # ============================================================
@@ -77,7 +95,6 @@ def payment_methods(
     db: Session = Depends(get_db)
 ):
     return crud.get_all_payment_methods(db)
-
 
 @router.post(
     "/payment-methods",
@@ -94,7 +111,6 @@ def create_payment_method(
             status_code=400,
             detail=str(exc)
         )
-
 
 # ============================================================
 # EXPENSE/PAYMENT DETAILS BY PAYMENT METHOD
@@ -117,7 +133,6 @@ def payment_method_details(
         )
 
     return details
-
 
 # ============================================================
 # UPDATE / ADD PAYMENT DETAILS (e.g. correcting a cheque number)
@@ -148,7 +163,6 @@ def update_payment(
 
     return payment
 
-
 # ============================================================
 # DASHBOARD
 # ============================================================
@@ -162,398 +176,302 @@ def dashboard(
 ):
     return crud.get_dashboard_summary(db)
 
-
-# ============================================================
-# EXPENSE LISTS
-# ============================================================
-
 @router.get(
-    "/expenses/pending",
+    "/expenses",
     response_model=List[schemas.ExpenseResponse]
 )
-def pending_expenses(
+def get_expenses(
+    status: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    return crud.get_pending_expenses(db)
-
-
-@router.get(
-    "/expenses/approved",
-    response_model=List[schemas.ExpenseResponse]
-)
-def approved_expenses(
-    db: Session = Depends(get_db)
-):
-    return crud.get_approved_expenses(db)
-
-
-@router.get(
-    "/expenses/rejected",
-    response_model=List[schemas.ExpenseResponse]
-)
-def rejected_expenses(
-    db: Session = Depends(get_db)
-):
-    return crud.get_rejected_expenses(db)
-
-
-@router.get(
-    "/expenses/paid",
-    response_model=List[schemas.ExpenseResponse]
-)
-def paid_expenses(
-    db: Session = Depends(get_db)
-):
-    return crud.get_paid_expenses(db)
-
-
-# ============================================================
-# APPROVE EXPENSE
-# ============================================================
-
-@router.put(
-    "/expenses/{expense_id}/approve",
-    response_model=schemas.ExpenseResponse
-)
-def approve_expense(
-    expense_id: int,
-    approval: schemas.ExpenseApproval,
-    db: Session = Depends(get_db)
-):
-
-    expense = crud.approve_expense(
+    return crud.get_expenses_by_status_filter(
         db,
-        expense_id,
-        approval.approved_by
+        status
     )
-
-    if expense is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Expense not found or already processed"
-        )
-
-    notify_safe(
-      db=db,
-      user_id=expense["created_by"],
-      title="Expense approved",
-      body=f"Your expense '{expense.get('title', 'Expense')}' was approved"
-    )
-
-    return expense
-
-
-# ============================================================
-# REJECT EXPENSE
-# ============================================================
 
 @router.put(
-    "/expenses/{expense_id}/reject",
+    "/expenses/{expense_id}/status",
     response_model=schemas.ExpenseResponse
 )
-def reject_expense(
+def update_expense_status(
     expense_id: int,
-    rejection: schemas.ExpenseReject,
+    update: schemas.ExpenseStatusUpdate,
     db: Session = Depends(get_db)
 ):
+    if update.status == "Approved":
 
-    expense = crud.reject_expense(
-        db,
-        expense_id,
-        rejection.approved_by,
-        rejection.remarks
-    )
+        if update.approved_by is None:
+            raise HTTPException(
+                status_code=400,
+                detail="approved_by is required"
+            )
 
-    if expense is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Expense not found or already processed"
-        )
-
-    notify_safe(
-       db=db,
-     user_id=expense["created_by"],
-     title="Expense rejected",
-     body=(
-        f"Your expense "
-        f"'{expense.get('title', 'Expense')}' "
-        f"was rejected: "
-        f"{rejection.remarks}"
-     )
-    )
-
-    return expense
-
-
-# ===============================================
-# MARK EXPENSE AS PAID
-# ===============================================
-
-@router.put(
-    "/expenses/{expense_id}/paid",
-    response_model=schemas.ExpenseResponse
-)
-def mark_as_paid(
-    expense_id: int,
-    payment: schemas.ExpensePaid,
-    db: Session = Depends(get_db)
-):
-
- 
-
-    try:
-        expense = crud.mark_as_paid(
+        expense = crud.approve_expense(
             db,
             expense_id,
-            payment
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc)
+            update.approved_by
         )
 
-    if expense is None:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                "Expense not approved, "
-                "payment method not found, "
-                "or expense not found"
+        if expense is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Expense not found or already processed"
+            )
+
+        notify_safe(
+            db=db,
+            user_id=expense.created_by,
+            title="Expense approved",
+            body=f"Your expense '{expense.title}' was approved"
+        )
+
+        return expense
+
+    if update.status == "Rejected":
+
+        if update.approved_by is None:
+            raise HTTPException(
+                status_code=400,
+                detail="approved_by is required"
+            )
+
+        if not update.remarks:
+            raise HTTPException(
+                status_code=400,
+                detail="remarks is required"
+            )
+
+        expense = crud.reject_expense(
+            db,
+            expense_id,
+            update.approved_by,
+            update.remarks
+        )
+
+        if expense is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Expense not found or already processed"
+            )
+
+        notify_safe(
+            db=db,
+            user_id=expense.created_by,
+            title="Expense rejected",
+            body=(
+                f"Your expense '{expense.title}' "
+                f"was rejected: {update.remarks}"
             )
         )
 
-    notify_safe(
-         db=db,
-     user_id=expense["created_by"],
-     title="Expense paid",
-     body=(
-        f"Your expense "
-        f"'{expense.get('title', 'Expense')}' "
-        f"has been paid out"
-    )
-    )
+        return expense
 
-    return expense
+    if update.status == "Paid":
+
+        if update.paid_by is None:
+            raise HTTPException(
+                status_code=400,
+                detail="paid_by is required"
+            )
+
+        if update.payment_method_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail="payment_method_id is required"
+            )
+
+        payment = schemas.ExpensePaid(
+            paid_by=update.paid_by,
+            payment_method_id=update.payment_method_id,
+            cheque_number=update.cheque_number,
+            account_last_four=update.account_last_four,
+            transaction_reference=update.transaction_reference,
+            bank_name=update.bank_name,
+            payment_date=update.payment_date,
+            remarks=update.remarks
+        )
+
+        try:
+            expense = crud.mark_as_paid(
+                db,
+                expense_id,
+                payment
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=str(exc)
+            )
+
+        if expense is None:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    "Expense not approved, "
+                    "payment method not found, "
+                    "or expense not found"
+                )
+            )
+
+        notify_safe(
+            db=db,
+            user_id=expense.created_by,
+            title="Expense paid",
+            body=f"Your expense '{expense.title}' has been paid out"
+        )
+
+        return expense
 
 
+# ============================================================
+# PAYMENT REPORTS
+# ============================================================
 
-@router.get(
-    "/reports/payment-methods",
-    response_model=List[schemas.PaymentMethodReportResponse]
-)
-def payment_method_report(
-    db: Session = Depends(get_db)
-):
-
-    return crud.get_payment_method_report(db)
-
-
-@router.get(
-    "/reports/payments",
-    response_model=List[schemas.PaymentReportResponse]
-)
-def payment_report(
-    payment_method_id: int = None,
-    db: Session = Depends(get_db)
-):
-    return crud.get_payment_report(
-        db,
-        payment_method_id
-    )
-
-@router.get(
-    "/payment-report",
-    response_model=List[
-        schemas.PaymentPeriodReportResponse
-    ]
-)
-def payment_report(
+@router.get("/reports/payments")
+def payment_reports(
+    report_type: str = "method",
+    payment_method_id: Optional[int] = None,
     period: str = "monthly",
     report_date: Optional[date] = None,
-    db: Session = Depends(get_db)
-):
-    if report_date is None:
-        report_date = date.today()
-
-    period = period.lower().strip()
-
-    if period not in [
-        "daily",
-        "weekly",
-        "monthly"
-    ]:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "period must be daily, "
-                "weekly, or monthly"
-            )
-        )
-
-    try:
-        start_date, end_date = (
-            crud.get_payment_report_date_range(
-                period,
-                report_date
-            )
-        )
-
-    except ValueError as error:
-        raise HTTPException(
-            status_code=400,
-            detail=str(error)
-        )
-
-    return crud.get_payment_period_report(
-        db=db,
-        start_date=start_date,
-        end_date=end_date,
-        
-    )
-
-@router.get(
-    "/payment-report",
-    response_model=List[
-        schemas.PaymentMethodReportResponse
-    ]
-)
-def payment_report(
-    period: str = "monthly",
-    report_date: Optional[date] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
     db: Session = Depends(get_db)
 ):
     """
-    Payment report grouped by payment method.
+    Payment reports.
 
-    Supported periods:
-        daily
-        weekly
-        monthly
+    report_type:
+        method  -> Payment method summary
+        details -> Payment details
+        period  -> Period-based payment report
+        custom  -> Custom date-range payment report
     """
 
-    # If date is not provided,
-    # use today's date.
-    if report_date is None:
-        report_date = date.today()
+    report_type = report_type.lower().strip()
 
-    period = period.lower().strip()
+    # --------------------------------------------------------
+    # PAYMENT METHOD REPORT
+    # --------------------------------------------------------
 
-    if period not in [
-        "daily",
-        "weekly",
-        "monthly"
-    ]:
+    if report_type == "method":
+        return crud.get_payment_method_report(db)
 
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Invalid period. "
-                "Use daily, weekly, or monthly."
+    # --------------------------------------------------------
+    # PAYMENT DETAILS
+    # --------------------------------------------------------
+
+    if report_type == "details":
+        return crud.get_payment_report(
+            db=db,
+            payment_method_id=payment_method_id
+        )
+
+    # --------------------------------------------------------
+    # PERIOD REPORT
+    # --------------------------------------------------------
+
+    if report_type == "period":
+
+        if report_date is None:
+            report_date = date.today()
+
+        period = period.lower().strip()
+
+        if period not in ["daily", "weekly", "monthly"]:
+            raise HTTPException(
+                status_code=400,
+                detail="period must be daily, weekly, or monthly"
             )
-        )
 
-    try:
-
-        start_date, end_date = (
-            crud.get_payment_report_date_range(
-                period,
-                report_date
+        try:
+            report_start, report_end = (
+                crud.get_payment_report_date_range(
+                    period,
+                    report_date
+                )
             )
+        except ValueError as error:
+            raise HTTPException(
+                status_code=400,
+                detail=str(error)
+            )
+
+        return crud.get_payment_period_report(
+            db=db,
+            start_date=report_start,
+            end_date=report_end
         )
 
-    except ValueError as error:
+    # --------------------------------------------------------
+    # CUSTOM DATE REPORT
+    # --------------------------------------------------------
 
-        raise HTTPException(
-            status_code=400,
-            detail=str(error)
+    if report_type == "custom":
+
+        if start_date is None or end_date is None:
+            raise HTTPException(
+                status_code=400,
+                detail="start_date and end_date are required"
+            )
+
+        if start_date > end_date:
+            raise HTTPException(
+                status_code=400,
+                detail="start_date cannot be greater than end_date"
+            )
+
+        return crud.get_payment_custom_report(
+            db=db,
+            start_date=start_date,
+            end_date=end_date
         )
 
-    return crud.get_payment_period_report(
-        db=db,
-        start_date=start_date,
-        end_date=end_date
+    # --------------------------------------------------------
+    # INVALID REPORT TYPE
+    # --------------------------------------------------------
+
+    raise HTTPException(
+        status_code=400,
+        detail=(
+            "Invalid report_type. "
+            "Use method, details, period, or custom."
+        )
     )
 
+# ============================================================
+# PAYMENT REPORT PDF
+# ============================================================
 
-@router.get(
-    "/payment-report/custom",
-    response_model=List[
-        schemas.PaymentMethodReportResponse
-    ]
-)
-def custom_payment_report(
-    start_date: date,
-    end_date: date,
-    db: Session = Depends(get_db)
-):
-    """
-    Payment report for a custom date range.
-    """
-
-    if start_date > end_date:
-
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "start_date cannot be greater "
-                "than end_date."
-            )
-        )
-
-    return crud.get_payment_custom_report(
-        db=db,
-        start_date=start_date,
-        end_date=end_date
-    )
-
-
-@router.get(
-    "/payment-report/pdf"
-)
+@router.get("/reports/payments/pdf")
 def payment_report_pdf(
     period: str = "monthly",
     report_date: Optional[date] = None,
     db: Session = Depends(get_db)
 ):
-    """
-    Download payment method report as PDF.
-    """
 
     if report_date is None:
         report_date = date.today()
 
     period = period.lower().strip()
 
-    if period not in [
-        "daily",
-        "weekly",
-        "monthly"
-    ]:
+    if period not in ["daily", "weekly", "monthly"]:
         raise HTTPException(
             status_code=400,
-            detail=(
-                "Invalid period. "
-                "Use daily, weekly, or monthly."
-            )
+            detail="Invalid period. Use daily, weekly, or monthly."
         )
 
     try:
-
         start_date, end_date = (
             crud.get_payment_report_date_range(
                 period,
                 report_date
             )
         )
-
     except ValueError as error:
-
         raise HTTPException(
             status_code=400,
             detail=str(error)
         )
-
 
     report_rows = crud.get_payment_period_report(
         db=db,
@@ -561,14 +479,11 @@ def payment_report_pdf(
         end_date=end_date
     )
 
-
-
-
     pdf_file = generate_payment_report_pdf(
         report_rows=report_rows,
         period=period,
         start_date=start_date,
-        end_date=end_date,
+        end_date=end_date
     )
 
     filename = (
@@ -586,44 +501,9 @@ def payment_report_pdf(
         }
     )
 
-
-@router.get(
-    "/payment-report/custom",
-    response_model=List[
-        schemas.PaymentMethodReportResponse
-    ]
-)
-def custom_payment_report(
-    start_date: date,
-    end_date: date,
-    db: Session = Depends(get_db)
-):
-    """
-    Payment report for a custom date range.
-    """
-
-    if start_date > end_date:
-
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "start_date cannot be greater "
-                "than end_date"
-            )
-        )
-
-    return crud.get_payment_custom_report(
-        db=db,
-        start_date=start_date,
-        end_date=end_date
-    )
-
-
-
 # ============================================================
 # SUB-VENDOR CATEGORY REQUESTS
 # ============================================================
-
 
 @router.get(
     "/category-requests",
@@ -648,7 +528,6 @@ def get_category_requests(
         db=db,
         status=status
     )
-
 
 # ============================================================
 # APPROVE CATEGORY REQUEST
@@ -687,7 +566,6 @@ def approve_category_request(
     )
 
     return result
-
 
 # ============================================================
 # REJECT CATEGORY REQUEST
@@ -733,11 +611,9 @@ def reject_category_request(
 
     return result
 
-
 # ============================================================
 # SUB-VENDOR SUBCATEGORY REQUESTS
 # ============================================================
-
 
 @router.get(
     "/subcategory-requests",
@@ -757,7 +633,6 @@ def get_subcategory_requests(
         db=db,
         status=status
     )
-
 
 # ============================================================
 # APPROVE SUBCATEGORY REQUEST
@@ -796,7 +671,6 @@ def approve_subcategory_request(
     )
 
     return result
-
 
 # ============================================================
 # REJECT SUBCATEGORY REQUEST
@@ -875,7 +749,6 @@ def get_sub_vendors(
 ):
     return crud.get_all_sub_vendors(db)
 
-
 @router.get(
     "/sub-vendors/{sub_vendor_id}",
     response_model=schemas.SubVendorResponse
@@ -924,7 +797,6 @@ def create_sub_vendor(
             detail=str(e)
         )
 
-
 @router.put(
     "/sub-vendors/{sub_vendor_id}",
     response_model=schemas.SubVendorResponse
@@ -955,15 +827,15 @@ def update_sub_vendor(
     return updated
 
 @router.put(
-    "/sub-vendors/{sub_vendor_id}/activate",
+    "/sub-vendors/{sub_vendor_id}/status",
     response_model=schemas.SubVendorResponse
 )
-def activate_sub_vendor(
+def update_sub_vendor_status(
     sub_vendor_id: int,
+    status: schemas.SubVendorStatusUpdate,
     db: Session = Depends(get_db)
 ):
-
-    vendor = crud.activate_sub_vendor(
+    vendor = crud.get_sub_vendor(
         db,
         sub_vendor_id
     )
@@ -974,30 +846,12 @@ def activate_sub_vendor(
             detail="Sub-vendor not found"
         )
 
-    return vendor
+    vendor.is_active = status.is_active
 
-@router.put(
-    "/sub-vendors/{sub_vendor_id}/deactivate",
-    response_model=schemas.SubVendorResponse
-)
-def deactivate_sub_vendor(
-    sub_vendor_id: int,
-    db: Session = Depends(get_db)
-):
-
-    vendor = crud.deactivate_sub_vendor(
-        db,
-        sub_vendor_id
-    )
-
-    if vendor is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Sub-vendor not found"
-        )
+    db.commit()
+    db.refresh(vendor)
 
     return vendor
-
 
 @router.delete(
     "/sub-vendors/{sub_vendor_id}"
@@ -1023,7 +877,6 @@ def delete_sub_vendor(
         "message": "Sub-vendor deleted successfully",
         "id": sub_vendor_id
     }
-
 
 
 
@@ -1086,13 +939,11 @@ def category_subcategory_report(
             )
 
 
-
     else:
 
         if report_date is None:
 
             report_date = date.today()
-
 
 
     try:
@@ -1111,7 +962,6 @@ def category_subcategory_report(
             detail=str(error)
         )
 
-
     report_rows = (
         crud.get_category_subcategory_period_report(
             db=db,
@@ -1128,55 +978,50 @@ def category_subcategory_report(
 
     for row in report_rows:
 
-     category_id = row["category_id"]
+        category_id = row["category_id"]
 
-    if category_id not in category_data:
+        if category_id not in category_data:
 
-        category_data[category_id] = {
-            "category_id": category_id,
-            "category_name": row["category_name"],
-            "expense_count": 0,
-            "total_amount": 0
-        }
+            category_data[category_id] = {
+                "category_id": category_id,
+                "category_name": row["category_name"],
+                "expense_count": 0,
+                "total_amount": 0
+            }
 
-    category_data[
-        category_id
-    ]["expense_count"] += row["expense_count"]
+        category_data[
+            category_id
+        ]["expense_count"] += row["expense_count"]
 
-    category_data[
-        category_id
-    ]["total_amount"] += row["total_amount"]
-
- 
+        category_data[
+            category_id
+        ]["total_amount"] += row["total_amount"]
 
     subcategory_data = []
 
     for row in report_rows:
 
-     subcategory_data.append({
-        "category_id": row["category_id"],
-        "category_name": row["category_name"],
+        subcategory_data.append({
+            "category_id": row["category_id"],
+            "category_name": row["category_name"],
 
-        "subcategory_id": row["subcategory_id"],
-        "subcategory_name": row["subcategory_name"],
+            "subcategory_id": row["subcategory_id"],
+            "subcategory_name": row["subcategory_name"],
 
-        "expense_count": row["expense_count"],
-        "total_amount": row["total_amount"]
-    })
+            "expense_count": row["expense_count"],
+            "total_amount": row["total_amount"]
+        })
 
     return {
-    "period": period,
-
-    "start_date": start_date,
-
-    "end_date": end_date,
-
-    "category_report": list(
-        category_data.values()
-    ),
-
-    "subcategory_report": subcategory_data
-}
+        "period": period,
+        "start_date": start_date,
+        "end_date": end_date,
+        "category_report": list(
+            category_data.values()
+        ),
+        "subcategory_report": subcategory_data
+    }
 
     
+
 

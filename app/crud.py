@@ -13,7 +13,6 @@ UPLOAD_DIR = "uploads/receipts"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 from app.models import SubVendor
 
-
 def create_expense(
     db: Session,
     expense: schemas.ExpenseCreate,
@@ -102,7 +101,6 @@ def create_expense(
 
     return serialize_expense(db_expense)
 
-
 def serialize_expense(expense):
     if expense is None:
         return None
@@ -137,7 +135,6 @@ def serialize_expense(expense):
         "receipt_image": image
     }
 
-
 def get_all_expenses(db: Session):
 
     expenses = db.query(models.Expense).options(
@@ -160,7 +157,6 @@ def get_expense_by_id(db: Session, expense_id: int):
         .first()
 
     )
-
 
 def get_expense_by_id_serialized(db: Session, expense_id: int):
     return serialize_expense(get_expense_by_id(db, expense_id))
@@ -241,7 +237,6 @@ def get_expenses_by_category(
 
     )
 
-
 def approve_expense(
 
     db: Session,
@@ -305,7 +300,6 @@ def reject_expense(
     db.refresh(expense)
 
     return serialize_expense(expense)
-
 
 
 def mark_as_paid(
@@ -543,7 +537,6 @@ def mark_as_paid(
 
     return serialize_expense(expense)
 
-
 def _get_expenses_by_status_serialized(db: Session, status: str):
 
     expenses = (
@@ -559,22 +552,33 @@ def _get_expenses_by_status_serialized(db: Session, status: str):
 
     return [serialize_expense(e) for e in expenses]
 
+def get_expenses_by_status_filter(
+    db: Session,
+    status: str = None
+):
+    query = (
+        db.query(models.Expense)
+        .options(
+            joinedload(models.Expense.category),
+            joinedload(models.Expense.subcategory)
+        )
+    )
 
-def get_pending_expenses(db: Session):
-    return _get_expenses_by_status_serialized(db, "Pending")
+    if status:
+        query = query.filter(
+            models.Expense.status == status
+        )
 
+    expenses = (
+        query
+        .order_by(models.Expense.created_at.desc())
+        .all()
+    )
 
-def get_approved_expenses(db: Session):
-    return _get_expenses_by_status_serialized(db, "Approved")
-
-
-def get_rejected_expenses(db: Session):
-    return _get_expenses_by_status_serialized(db, "Rejected")
-
-
-def get_paid_expenses(db: Session):
-    return _get_expenses_by_status_serialized(db, "Paid")
-
+    return [
+        serialize_expense(expense)
+        for expense in expenses
+    ]
 
 def get_payments_by_method(db: Session, payment_method_id: int):
     from sqlalchemy import func as sqlfunc
@@ -623,7 +627,6 @@ def get_payments_by_method(db: Session, payment_method_id: int):
         for payment, expense in results
     ]
 
-
 def update_payment_details(
     db: Session,
     expense_id: int,
@@ -648,10 +651,8 @@ def update_payment_details(
 
     return payment
 
-
 def get_all_payment_methods(db: Session):
     return db.query(models.PaymentMethod).all()
-
 
 def create_payment_method(
     db: Session,
@@ -684,10 +685,8 @@ def create_payment_method(
 
     return new_method
 
-
 def get_all_categories(db: Session):
     return db.query(models.ExpenseCategory).all()
-
 
 def create_category(db: Session, category: schemas.CategoryCreate):
     name = category.category_name.strip()
@@ -717,10 +716,8 @@ def create_category(db: Session, category: schemas.CategoryCreate):
 
     return new_category
 
-
 def get_all_subcategories(db: Session):
     return db.query(models.ExpenseSubCategory).all()
-
 
 def create_subcategory(db: Session, subcategory: schemas.SubCategoryCreate):
     name = subcategory.subcategory_name.strip()
@@ -764,14 +761,12 @@ def create_subcategory(db: Session, subcategory: schemas.SubCategoryCreate):
 
     return new_subcategory
 
-
 def get_subcategories_by_category(db: Session, category_id: int):
     return (
         db.query(models.ExpenseSubCategory)
         .filter(models.ExpenseSubCategory.category_id == category_id)
         .all()
     )
-
 
 def get_dashboard_summary(db: Session):
     from sqlalchemy import func as sqlfunc
@@ -791,7 +786,6 @@ def get_dashboard_summary(db: Session):
         "paid": paid,
         "total_amount": total_amount,
     }
-
 
 def get_report_by_category(db: Session):
     from sqlalchemy import func as sqlfunc
@@ -1024,7 +1018,6 @@ def get_payment_method_report(db: Session):
         for row in results
     ]
 
-
 def get_payment_report(
     db: Session,
     payment_method_id: int = None
@@ -1097,7 +1090,6 @@ def get_payment_report(
         }
         for row in results
     ]
-
 
 def get_payment_report_date_range(
     period: str,
@@ -1228,7 +1220,6 @@ def get_report_date_range(
 
     return start_date, end_date
 
-
 def get_payment_period_report(
     db: Session,
     start_date: date,
@@ -1299,7 +1290,6 @@ def get_payment_period_report(
         )
 
 
-
         .outerjoin(
             models.Expense,
             (
@@ -1341,7 +1331,6 @@ def get_payment_period_report(
         for row in results
     ]
 
-
 def get_payment_custom_report(
     db: Session,
     start_date: date,
@@ -1361,7 +1350,6 @@ def get_payment_custom_report(
         start_date=start_date,
         end_date=end_date
     )
-
 
 
 def create_category_request(
@@ -1400,7 +1388,6 @@ def create_category_request(
         )
 
 
-
     existing_request = (
         db.query(models.CategoryRequest)
         .filter(
@@ -1424,7 +1411,6 @@ def create_category_request(
         )
 
 
-
     category_request = models.CategoryRequest(
 
         category_name=category_name.strip(),
@@ -1443,7 +1429,6 @@ def create_category_request(
     db.refresh(category_request)
 
     return category_request
-
 
 def get_category_requests_by_user(
     db: Session,
@@ -1465,7 +1450,6 @@ def get_category_requests_by_user(
         )
         .all()
     )
-
 
 
 def create_subcategory_request(
@@ -1500,7 +1484,6 @@ def create_subcategory_request(
             "Category not found."
         )
 
-
     existing_subcategory = (
         db.query(models.ExpenseSubCategory)
         .filter(
@@ -1521,7 +1504,6 @@ def create_subcategory_request(
         raise ValueError(
             "Subcategory already exists."
         )
-
 
     existing_request = (
         db.query(models.SubCategoryRequest)
@@ -1548,7 +1530,6 @@ def create_subcategory_request(
             "subcategory already exists."
         )
 
-
     subcategory_request = (
         models.SubCategoryRequest(
 
@@ -1574,7 +1555,6 @@ def create_subcategory_request(
 
     return subcategory_request
 
-
 def get_subcategory_requests_by_user(
     db: Session,
     requested_by: int
@@ -1595,7 +1575,6 @@ def get_subcategory_requests_by_user(
         )
         .all()
     )
-
 
 
 
@@ -1627,7 +1606,6 @@ def get_all_category_requests(
         )
         .all()
     )
-
 
 def approve_category_request(
     db: Session,
@@ -1690,7 +1668,6 @@ def approve_category_request(
         )
 
 
-
     new_category = models.ExpenseCategory(
         category_name=(
             category_request.category_name
@@ -1699,7 +1676,6 @@ def approve_category_request(
     )
 
     db.add(new_category)
-
 
     category_request.status = "APPROVED"
 
@@ -1714,7 +1690,6 @@ def approve_category_request(
     db.refresh(category_request)
 
     return category_request
-
 
 def reject_category_request(
     db: Session,
@@ -1765,7 +1740,6 @@ def reject_category_request(
 
 
 
-
 def get_all_subcategory_requests(
     db: Session,
     status: str = None
@@ -1794,7 +1768,6 @@ def get_all_subcategory_requests(
         )
         .all()
     )
-
 
 def approve_subcategory_request(
     db: Session,
@@ -1920,7 +1893,6 @@ def approve_subcategory_request(
 
     return subcategory_request
 
-
 def reject_subcategory_request(
     db: Session,
     request_id: int,
@@ -1969,7 +1941,6 @@ def reject_subcategory_request(
     db.refresh(subcategory_request)
 
     return subcategory_request
-
 
 
 
@@ -2059,7 +2030,6 @@ def get_sub_vendor_activities(
 
 
 
-
 def create_sub_vendor(
     db: Session,
     sub_vendor,
@@ -2121,7 +2091,6 @@ def get_sub_vendor(
         )
         .first()
     )
-
 
 def update_sub_vendor(
     db: Session,
@@ -2198,7 +2167,6 @@ def deactivate_sub_vendor(
 
     return vendor
 
-
 def delete_sub_vendor(
     db: Session,
     sub_vendor_id: int
@@ -2217,7 +2185,6 @@ def delete_sub_vendor(
     db.commit()
 
     return vendor
-
 
 
 def get_category_subcategory_period_report(
@@ -2339,3 +2306,4 @@ def get_category_subcategory_period_report(
 
         for row in results
     ]
+

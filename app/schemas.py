@@ -1,9 +1,8 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
-
+from typing import Literal	
 from pydantic import BaseModel, ConfigDict
-
 
 # ============================================================
 # CATEGORY
@@ -15,10 +14,8 @@ class CategoryResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 class CategoryCreate(BaseModel):
     category_name: str
-
 
 # ============================================================
 # SUBCATEGORY
@@ -31,10 +28,16 @@ class SubCategoryResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 class SubCategoryCreate(BaseModel):
     category_id: int
     subcategory_name: str
+
+class CategoryManagementCreate(BaseModel):
+    type: Literal["category", "subcategory"]
+
+    category_name: Optional[str] = None
+    category_id: Optional[int] = None
+    subcategory_name: Optional[str] = None
 
 
 # ============================================================
@@ -63,7 +66,6 @@ class ExpenseCreate(BaseModel):
     transaction_reference: Optional[str] = None
     bank_name: Optional[str] = None
 
-
 # ============================================================
 # EXPENSE UPDATE
 # ============================================================
@@ -84,7 +86,6 @@ class ExpenseUpdate(BaseModel):
     payment_method: Optional[str] = None
 
     remarks: Optional[str] = None
-
 
 # ============================================================
 # EXPENSE RESPONSE
@@ -134,7 +135,6 @@ class ExpenseResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 # ============================================================
 # EXPENSE APPROVAL
 # ============================================================
@@ -142,7 +142,6 @@ class ExpenseResponse(BaseModel):
 class ExpenseApproval(BaseModel):
 
     approved_by: int
-
 
 # ============================================================
 # EXPENSE REJECTION
@@ -153,7 +152,6 @@ class ExpenseReject(BaseModel):
     approved_by: int
 
     remarks: str
-
 
 # ============================================================
 # PAYMENT METHOD RESPONSE
@@ -166,6 +164,23 @@ class PaymentMethodResponse(BaseModel):
     payment_method_name: str
 
     model_config = ConfigDict(from_attributes=True)
+
+class ExpenseOptionsResponse(BaseModel):
+
+    categories: list[CategoryResponse]
+
+    subcategories: list[SubCategoryResponse]
+
+    payment_methods: list[PaymentMethodResponse]    
+
+
+class SubVendorOptionsResponse(BaseModel):
+
+    categories: list[CategoryResponse]
+
+    subcategories: list[SubCategoryResponse]
+
+    payment_methods: list[PaymentMethodResponse]    
 
 class PaymentReportResponse(BaseModel):
     expense_id: int
@@ -191,7 +206,6 @@ class PaymentMethodCreate(BaseModel):
 
     payment_method_name: str
 
-
 # ============================================================
 # EXPENSE PAYMENT CREATE
 # ============================================================
@@ -213,7 +227,6 @@ class ExpensePaymentCreate(BaseModel):
     payment_date: Optional[datetime] = None
 
     remarks: Optional[str] = None
-
 
 # ============================================================
 # EXPENSE PAYMENT RESPONSE
@@ -239,7 +252,6 @@ class ExpensePaymentResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 # ============================================================
 # EXPENSE PAID
 # ============================================================
@@ -262,6 +274,25 @@ class ExpensePaid(BaseModel):
 
     remarks: Optional[str] = None
 
+class ExpenseStatusUpdate(BaseModel):
+
+    status: Literal[
+        "Approved",
+        "Rejected",
+        "Paid"
+    ]
+
+    approved_by: Optional[int] = None
+    paid_by: Optional[int] = None
+
+    remarks: Optional[str] = None
+
+    payment_method_id: Optional[int] = None
+    cheque_number: Optional[str] = None
+    account_last_four: Optional[str] = None
+    transaction_reference: Optional[str] = None
+    bank_name: Optional[str] = None
+    payment_date: Optional[datetime] = None
 
 # ============================================================
 # DASHBOARD
@@ -283,7 +314,6 @@ class DashboardResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 # ============================================================
 # REPORT
 # ============================================================
@@ -295,7 +325,6 @@ class ReportResponse(BaseModel):
     total_amount: Decimal
 
     model_config = ConfigDict(from_attributes=True)
-
 
 
 # ============================================================
@@ -338,7 +367,6 @@ class ExpensePaymentDetailResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 # ============================================================
 # EXPENSE PAYMENT UPDATE (correct/add cheque & other details)
 # ============================================================
@@ -355,7 +383,6 @@ class ExpensePaymentUpdate(BaseModel):
 
     payment_date: Optional[datetime] = None
 
-
 class PaymentMethodReportResponse(BaseModel):
     payment_method_id: int
     payment_method_name: str
@@ -363,11 +390,9 @@ class PaymentMethodReportResponse(BaseModel):
     total_amount: Decimal
 
 
-
 # ============================================================
 # PAYMENT PERIOD REPORT
 # ============================================================
-
 
 class PaymentPeriodReportResponse(BaseModel):
     payment_method_id:int
@@ -407,7 +432,6 @@ class PaymentPeriodDetailResponse(BaseModel):
 
 
 
-
 # ============================================================
 # SUB-VENDOR CATEGORY REQUEST
 # ============================================================
@@ -419,7 +443,6 @@ class CategoryRequestCreate(BaseModel):
     requested_by: int
 
     remarks: Optional[str] = None
-
 
 class CategoryRequestResponse(BaseModel):
 
@@ -447,7 +470,6 @@ class CategoryRequestResponse(BaseModel):
 
         from_attributes = True
 
-
 # ============================================================
 # SUB-VENDOR SUB-CATEGORY REQUEST
 # ============================================================
@@ -461,7 +483,6 @@ class SubCategoryRequestCreate(BaseModel):
     requested_by: int
 
     remarks: Optional[str] = None
-
 
 class SubCategoryRequestResponse(BaseModel):
 
@@ -491,7 +512,6 @@ class SubCategoryRequestResponse(BaseModel):
 
         from_attributes = True
 
-
 # ============================================================
 # ADMIN CATEGORY REQUEST ACTIONS
 # ============================================================
@@ -499,11 +519,9 @@ class SubCategoryRequestResponse(BaseModel):
 class CategoryRequestApproval(BaseModel):
     approved_by: int
 
-
 class CategoryRequestRejection(BaseModel):
     rejected_by: int
     rejection_reason: str
-
 
 # ============================================================
 # ADMIN SUBCATEGORY REQUEST ACTIONS
@@ -512,11 +530,9 @@ class CategoryRequestRejection(BaseModel):
 class SubCategoryRequestApproval(BaseModel):
     approved_by: int
 
-
 class SubCategoryRequestRejection(BaseModel):
     rejected_by: int
     rejection_reason: str        
-
 
 # ============================================================
 # SUB-VENDOR ACTIVITY LOG
@@ -546,7 +562,6 @@ class SubVendorActivityResponse(BaseModel):
         from_attributes = True   
 
 
-
 # ============================================================
 # SUB-VENDOR MANAGEMENT
 # ============================================================
@@ -561,6 +576,25 @@ class SubVendorCreate(BaseModel):
 
     password: str
 
+class SubVendorUpdate(BaseModel):
+
+    name: Optional[str] = None
+
+    email: Optional[str] = None
+
+    phone: Optional[str] = None
+
+    password: Optional[str] = None
+
+class SubVendorCreate(BaseModel):
+
+    name: str
+
+    email: str
+
+    phone: Optional[str] = None
+
+    password: str
 
 class SubVendorUpdate(BaseModel):
 
@@ -572,6 +606,29 @@ class SubVendorUpdate(BaseModel):
 
     password: Optional[str] = None
 
+class SubVendorStatusUpdate(BaseModel):
+
+    is_active: bool
+
+class SubVendorResponse(BaseModel):
+
+    id: int
+
+    name: str
+
+    email: str
+
+    phone: Optional[str] = None
+
+    is_active: bool
+
+    created_at: datetime
+
+    updated_at: datetime
+
+    class Config:
+
+        from_attributes = True    
 
 class SubVendorResponse(BaseModel):
 
@@ -593,11 +650,9 @@ class SubVendorResponse(BaseModel):
 
         from_attributes = True
 
-
 class SubVendorLogin(BaseModel):
     email:str
     password:str
-
 
 
 class CategoryPeriodReportResponse(BaseModel):
@@ -609,7 +664,6 @@ class CategoryPeriodReportResponse(BaseModel):
     expense_count: int
 
     total_amount: Decimal
-
 
 class SubCategoryPeriodReportResponse(BaseModel):
 
@@ -624,7 +678,6 @@ class SubCategoryPeriodReportResponse(BaseModel):
     expense_count: int
 
     total_amount: Decimal
-
 
 class CategorySubCategoryPeriodReportResponse(BaseModel):
 
@@ -641,3 +694,5 @@ class CategorySubCategoryPeriodReportResponse(BaseModel):
     subcategory_report: list[
         SubCategoryPeriodReportResponse
     ]    
+
+

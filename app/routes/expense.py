@@ -29,40 +29,18 @@ def get_db():
         db.close()
 
 
-@router.get("/categories", response_model=list[schemas.CategoryResponse])
-def get_categories(db: Session = Depends(get_db)):
-    return crud.get_all_categories(db)
-
-
 @router.get(
-    "/subcategories",
-    response_model=list[schemas.SubCategoryResponse]
+    "/options",
+    response_model=schemas.ExpenseOptionsResponse
 )
-def get_all_subcategories(db: Session = Depends(get_db)):
-    return crud.get_all_subcategories(db)
-
-
-@router.get(
-    "/categories/{category_id}/subcategories",
-    response_model=list[schemas.SubCategoryResponse]
-)
-def get_subcategories_by_category(
-    category_id: int,
+def get_expense_options(
     db: Session = Depends(get_db)
 ):
-    return crud.get_subcategories_by_category(db, category_id)
-
-
-@router.get(
-    "/payment-methods",
-    response_model=list[schemas.PaymentMethodResponse]
-)
-def get_payment_methods(
-    db: Session = Depends(get_db)
-):
-    return crud.get_all_payment_methods(db)
-
-
+    return {
+        "categories": crud.get_all_categories(db),
+        "subcategories": crud.get_all_subcategories(db),
+        "payment_methods": crud.get_all_payment_methods(db)
+    }
 
 @router.post(
     "/",

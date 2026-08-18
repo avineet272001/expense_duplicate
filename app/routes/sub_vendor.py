@@ -188,32 +188,18 @@ def sub_vendor_dashboard(
 # ============================================================
 
 @router.get(
-    "/categories",
-    response_model=List[schemas.CategoryResponse]
+    "/options",
+    response_model=schemas.SubVendorOptionsResponse
 )
-def get_categories(
+def get_sub_vendor_options(
     db: Session = Depends(get_db),
     current_vendor = Depends(get_current_sub_vendor)
 ):
-
-    return crud.get_all_categories(db)
-
-
-# ============================================================
-# SUBCATEGORIES - VIEW ONLY
-# ============================================================
-
-@router.get(
-    "/subcategories",
-    response_model=List[schemas.SubCategoryResponse]
-)
-def get_subcategories(
-    db: Session = Depends(get_db),
-    current_vendor = Depends(get_current_sub_vendor)
-):
-
-    return crud.get_all_subcategories(db)
-
+    return {
+        "categories": crud.get_all_categories(db),
+        "subcategories": crud.get_all_subcategories(db),
+        "payment_methods": crud.get_all_payment_methods(db)
+    }
 
 # ============================================================
 # SUBCATEGORIES BY CATEGORY - VIEW ONLY
@@ -638,27 +624,29 @@ def update_expense(
 # ============================================================
 
 @router.put(
-    "/expenses/{expense_id}/reject",
+    "/expenses/{expense_id}/status",
     response_model=schemas.ExpenseResponse
 )
-def reject_expense(
-
+def update_expense_status(
     expense_id: int,
-
-    rejection: schemas.ExpenseReject,
-
-    db: Session = Depends(get_db)
+    status_data: schemas.ExpenseStatusUpdate,
+    db: Session = Depends(get_db),
+    current_vendor = Depends(get_current_sub_vendor)
 ):
+    if status_data.status != "Rejected":
+        raise HTTPException(
+            status_code=400,
+            detail="Sub-vendor can only reject expenses"
+        )
 
     expense = crud.reject_expense(
         db,
         expense_id,
-        rejection.approved_by,
-        rejection.remarks
+        status_data.approved_by,
+        status_data.remarks
     )
 
     if expense is None:
-
         raise HTTPException(
             status_code=404,
             detail=(
@@ -668,7 +656,6 @@ def reject_expense(
         )
 
     return expense
-
 
 # ============================================================
 # PAYMENT REPORT
