@@ -22,24 +22,22 @@ from app.config import (
 )
 
 
-# ============================================================
+
 # SCHEDULER
-# ============================================================
+
 
 scheduler = BackgroundScheduler(
     timezone=ZoneInfo("Asia/Kolkata")
 )
 
 
-# ============================================================
+
 # START SCHEDULER
-# ============================================================
+
 
 def start_scheduler():
 
-    # --------------------------------------------------------
-    # PREVENT STARTING THE SAME SCHEDULER TWICE
-    # --------------------------------------------------------
+  
 
     if scheduler.running:
 
@@ -49,9 +47,7 @@ def start_scheduler():
 
         return
 
-    # ========================================================
-    # DAILY REPORT
-    # ========================================================
+    
 
     scheduler.add_job(
         daily_payment_report_job,
@@ -66,9 +62,7 @@ def start_scheduler():
         replace_existing=True,
     )
 
-    # ========================================================
-    # MONTHLY REPORT
-    # ========================================================
+ 
 
     scheduler.add_job(
         monthly_payment_report_job,
@@ -85,9 +79,7 @@ def start_scheduler():
         replace_existing=True,
     )
 
-    # ========================================================
-    # START
-    # ========================================================
+ 
 
     scheduler.start()
 
@@ -117,9 +109,7 @@ def start_scheduler():
     )
 
 
-    # ========================================================
-    #    DAILY SUB-VENDOR ACTIVITY REPORT
-    # ========================================================
+  
 
     scheduler.add_job(
     daily_sub_vendor_activity_report_job,

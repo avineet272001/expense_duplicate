@@ -136,7 +136,7 @@ def sub_vendor_login(
         key="sub_vendor_token",
         value=access_token,
         httponly=True,
-        secure=False,      # True when using HTTPS in production
+        secure=False,      
         samesite="lax",
         max_age=60 * 60
     )
@@ -152,9 +152,9 @@ def sub_vendor_login(
 
 
 
-# ============================================================
+
 # DATABASE
-# ============================================================
+
 
 def get_db():
 
@@ -167,9 +167,9 @@ def get_db():
         db.close()
 
 
-# ============================================================
+
 # DASHBOARD
-# ============================================================
+
 
 @router.get(
     "/dashboard",
@@ -183,9 +183,9 @@ def sub_vendor_dashboard(
     return crud.get_dashboard_summary(db)
 
 
-# ============================================================
+
 # CATEGORIES - VIEW ONLY
-# ============================================================
+
 
 @router.get(
     "/options",
@@ -201,9 +201,9 @@ def get_sub_vendor_options(
         "payment_methods": crud.get_all_payment_methods(db)
     }
 
-# ============================================================
+
 # SUBCATEGORIES BY CATEGORY - VIEW ONLY
-# ============================================================
+
 
 @router.get(
     "/categories/{category_id}/subcategories",
@@ -288,9 +288,9 @@ def create_category_request(
    
 
 
-# ============================================================
+
 # VIEW SUB-VENDOR'S CATEGORY REQUESTS
-# ============================================================
+
 
 @router.get(
     "/category-requests",
@@ -378,9 +378,9 @@ def get_subcategory_requests(
     )
 
 
-# ============================================================
+
 # PAYMENT METHODS - VIEW ONLY
-# ============================================================
+
 
 @router.get(
     "/payment-methods",
@@ -396,9 +396,9 @@ def get_payment_methods(
     return crud.get_all_payment_methods(db)
 
 
-# ============================================================
+
 # CREATE EXPENSE
-# ============================================================
+
 
 @router.post(
     "/expenses",
@@ -467,9 +467,6 @@ def create_expense(
         bank_name=bank_name,
     )
 
-    # --------------------------------------------------------
-    # CREATE EXPENSE
-    # --------------------------------------------------------
 
     created_expense = crud.create_expense(
         db,
@@ -477,9 +474,6 @@ def create_expense(
         receipt
     )
 
-    # --------------------------------------------------------
-    # ACTIVITY LOG
-    # --------------------------------------------------------
 
     crud.create_sub_vendor_activity(
         db=db,
@@ -506,9 +500,9 @@ def create_expense(
     return created_expense
 
 
-# ============================================================
+
 # VIEW ALL EXPENSES
-# ============================================================
+
 
 @router.get(
     "/expenses",
@@ -522,9 +516,9 @@ def get_expenses(
     return crud.get_all_expenses(db)
 
 
-# ============================================================
+
 # VIEW SINGLE EXPENSE
-# ============================================================
+
 
 @router.get(
     "/expenses/{expense_id}",
@@ -550,9 +544,9 @@ def get_expense(
     return expense
 
 
-# ============================================================
+
 # UPDATE EXPENSE
-# ============================================================
+
 
 @router.put(
     "/expenses/{expense_id}",
@@ -567,9 +561,6 @@ def update_expense(
     db: Session = Depends(get_db)
 ):
 
-    # --------------------------------------------------------
-    # GET EXISTING EXPENSE
-    # --------------------------------------------------------
 
     existing_expense = crud.get_expense_by_id_serialized(
         db,
@@ -583,9 +574,6 @@ def update_expense(
             detail="Expense not found"
         )
 
-    # --------------------------------------------------------
-    # UPDATE EXPENSE
-    # --------------------------------------------------------
 
     updated = crud.update_expense(
         db,
@@ -600,9 +588,6 @@ def update_expense(
             detail="Expense not found"
         )
 
-    # --------------------------------------------------------
-    # ACTIVITY LOG
-    # --------------------------------------------------------
 
     crud.create_sub_vendor_activity(
      db=db,
@@ -619,9 +604,9 @@ def update_expense(
 
     return updated
 
-# ============================================================
+
 # REJECT EXPENSE
-# ============================================================
+
 
 @router.put(
     "/expenses/{expense_id}/status",
@@ -657,9 +642,9 @@ def update_expense_status(
 
     return expense
 
-# ============================================================
+
 # PAYMENT REPORT
-# ============================================================
+
 
 @router.get(
     "/reports/payments",

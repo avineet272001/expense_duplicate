@@ -16,6 +16,8 @@ from app.routes.expense import router as expense_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.reports import router as reports_router
 from app.routes.admin import router as admin_router
+from app.routes.admin import router as admin_router
+from app.routes.wallet import router as wallet_router
 
 from app.scheduler.scheduler import start_scheduler
 
@@ -39,9 +41,9 @@ app.add_middleware(
 )
 
 
-# ============================================================
+
 # ROUTERS
-# ============================================================
+
 
 # Employee-facing expense module
 app.include_router(expense_router)
@@ -54,7 +56,8 @@ app.include_router(reports_router)
 # Admin module
 app.include_router(admin_router)
 
-
+# Wallet Module 
+app.include_router(wallet_router)
 # Sub-vendor module
 app.include_router(sub_vendor_router)
 
@@ -63,9 +66,9 @@ app.include_router(sub_vendor_router)
 app.include_router(notifications_router)
 
 
-# ============================================================
+
 # HOME
-# ============================================================
+
 
 @app.get("/api")
 def home():
@@ -75,9 +78,9 @@ def home():
     }
 
 
-# ============================================================
+
 # ADMIN FRONTEND
-# ============================================================
+
 
 app.mount(
     "/admin-ui",
@@ -89,9 +92,9 @@ app.mount(
 )
 
 
-# ============================================================
+
 # SUB-VENDOR FRONTEND
-# ============================================================
+
 
 app.mount(
     "/vendor-ui",
@@ -103,9 +106,9 @@ app.mount(
 )
 
 
-# ============================================================
+
 # EMPLOYEE FRONTEND
-# ============================================================
+
 
 app.mount(
     "/",
@@ -117,9 +120,9 @@ app.mount(
 )
 
 
-# ============================================================
+
 # STARTUP
-# ============================================================
+
 
 @app.on_event("startup")
 def startup_event():
@@ -127,3 +130,4 @@ def startup_event():
     initialize_firebase()
 
     start_scheduler()
+

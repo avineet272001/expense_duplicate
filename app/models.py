@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column,
+ Column,
     Integer,
     String,
     Text,
@@ -8,7 +8,8 @@ from sqlalchemy import (
     TIMESTAMP,
     ForeignKey,
     LargeBinary,
-    Boolean
+    Boolean,
+    UniqueConstraint
 )
 from datetime import datetime
 
@@ -18,9 +19,9 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
-# ============================================================
+
 # Expense Category
-# ============================================================
+
 
 class ExpenseCategory(Base):
     __tablename__ = "expense_categories"
@@ -53,9 +54,9 @@ class ExpenseCategory(Base):
     )
 
 
-# ============================================================
+
 # Expense
-# ============================================================
+
 
 class Expense(Base):
     __tablename__ = "expenses"
@@ -186,9 +187,9 @@ class Expense(Base):
     )
 
 
-# ============================================================
+
 # Expense Subcategory
-# ============================================================
+
 
 class ExpenseSubCategory(Base):
     __tablename__ = "expense_subcategories"
@@ -226,9 +227,9 @@ class ExpenseSubCategory(Base):
     )
 
 
-# ============================================================
+
 # Payment Method
-# ============================================================
+
 
 class PaymentMethod(Base):
     __tablename__ = "payment_methods"
@@ -253,9 +254,9 @@ class PaymentMethod(Base):
     )
 
 
-# ============================================================
+
 # Expense Payment
-# ============================================================
+
 
 class ExpensePayment(Base):
     __tablename__ = "expense_payments"
@@ -329,9 +330,9 @@ class ExpensePayment(Base):
     )
 
 
-# ============================================================
+
 # SUB-VENDOR CATEGORY REQUEST
-# ============================================================
+
 
 class CategoryRequest(Base):
     __tablename__ = "category_requests"
@@ -389,9 +390,9 @@ class CategoryRequest(Base):
     )
 
 
-# ============================================================
+
 # SUB-VENDOR SUBCATEGORY REQUEST
-# ============================================================
+
 
 class SubCategoryRequest(Base):
     __tablename__ = "subcategory_requests"
@@ -510,15 +511,144 @@ class SubVendor(Base):
         nullable=False
     )
 
+class Wallet(Base):
+    __tablename__ = "wallets"
 
-# ============================
-# SUB VENDOR ACTIVITY LOG
-# ==============================
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    owner_type = Column(
+        String(20),
+        nullable=False,
+        index=True
+    )
+
+    owner_id = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
+
+    balance = Column(
+        Numeric(12, 2),
+        nullable=False,
+        default=0
+    )
+
+    currency = Column(
+        String(3),
+        nullable=False,
+        default="INR"
+    )
+
+    is_active = Column(
+        Boolean,
+        nullable=False,
+        default=True
+    )
+
+    created_at = Column(
+        TIMESTAMP,
+        server_default=func.now(),
+        nullable=False
+    )
+
+    updated_at = Column(
+        TIMESTAMP,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "owner_type",
+            "owner_id",
+            name="uq_wallet_owner"
+        ),
+    )
+
+    transactions = relationship(
+        "WalletTransaction",
+        back_populates="wallet"
+    )
 
 
-# ============================================================
+class WalletTransaction(Base):
+    __tablename__ = "wallet_transactions"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    wallet_id = Column(
+        Integer,
+        ForeignKey("wallets.id"),
+        nullable=False,
+        index=True
+    )
+
+    transaction_type = Column(
+        String(10),
+        nullable=False
+    )
+
+    amount = Column(
+        Numeric(12, 2),
+        nullable=False
+    )
+
+    balance_before = Column(
+        Numeric(12, 2),
+        nullable=False
+    )
+
+    balance_after = Column(
+        Numeric(12, 2),
+        nullable=False
+    )
+
+    reference_type = Column(
+        String(50),
+        nullable=True
+    )
+
+    reference_id = Column(
+        Integer,
+        nullable=True
+    )
+
+    description = Column(
+        Text,
+        nullable=True
+    )
+
+    created_at = Column(
+        TIMESTAMP,
+        server_default=func.now(),
+        nullable=False
+    )
+
+    wallet = relationship(
+        "Wallet",
+        back_populates="transactions"
+    )
+
+    performed_by = Column(
+    Integer,
+    nullable=True,
+    index=True
+     )
+
+
+
 # SUB-VENDOR ACTIVITY LOG
-# ============================================================
+
 
 class SubVendorActivityLog(Base):
 
@@ -581,9 +711,9 @@ class SubVendorActivityLog(Base):
         nullable=False
     )
 
-# ============================================================
+
 # NOTIFICATION TOKEN
-# ============================================================
+
 
 class NotificationToken(Base):
 

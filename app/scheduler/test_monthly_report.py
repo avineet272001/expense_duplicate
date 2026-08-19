@@ -18,9 +18,7 @@ from app.notifications.config import (
 
 def test_august_monthly_report():
 
-    # ==================================================
-    # TEST MONTH
-    # ==================================================
+
 
     start_date = date(
         2026,
@@ -43,9 +41,7 @@ def test_august_monthly_report():
 
     try:
 
-        # ==================================================
-        # GET DATABASE REPORT
-        # ==================================================
+        
 
         report_rows = get_payment_period_report(
             db=db,
@@ -58,9 +54,6 @@ def test_august_monthly_report():
             f"{len(report_rows)}"
         )
 
-        # ==================================================
-        # SHOW DATA
-        # ==================================================
 
         for row in report_rows:
 
@@ -70,10 +63,7 @@ def test_august_monthly_report():
                 f"Amount: {row['total_amount']}"
             )
 
-        # ==================================================
-        # GENERATE PDF
-        # ==================================================
-
+      
         pdf_buffer = generate_payment_report_pdf(
             report_rows=report_rows,
             period="monthly",
@@ -83,9 +73,6 @@ def test_august_monthly_report():
 
         pdf_bytes = pdf_buffer.getvalue()
 
-        # ==================================================
-        # SAVE PDF LOCALLY
-        # ==================================================
 
         filename = (
             "monthly_payment_report_2026_08.pdf"
@@ -104,9 +91,6 @@ def test_august_monthly_report():
             f"PDF generated: {filename}"
         )
 
-        # ==================================================
-        # SEND EMAIL
-        # ==================================================
 
         send_email_with_attachment(
 

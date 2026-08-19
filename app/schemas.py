@@ -4,9 +4,9 @@ from typing import Optional
 from typing import Literal	
 from pydantic import BaseModel, ConfigDict
 
-# ============================================================
+
 # CATEGORY
-# ============================================================
+
 
 class CategoryResponse(BaseModel):
     id: int
@@ -17,9 +17,9 @@ class CategoryResponse(BaseModel):
 class CategoryCreate(BaseModel):
     category_name: str
 
-# ============================================================
+
 # SUBCATEGORY
-# ============================================================
+
 
 class SubCategoryResponse(BaseModel):
     id: int
@@ -40,9 +40,9 @@ class CategoryManagementCreate(BaseModel):
     subcategory_name: Optional[str] = None
 
 
-# ============================================================
+
 # EXPENSE CREATE
-# ============================================================
+
 
 class ExpenseCreate(BaseModel):
     expense_date: date
@@ -66,9 +66,9 @@ class ExpenseCreate(BaseModel):
     transaction_reference: Optional[str] = None
     bank_name: Optional[str] = None
 
-# ============================================================
+
 # EXPENSE UPDATE
-# ============================================================
+
 
 class ExpenseUpdate(BaseModel):
     expense_date: Optional[date] = None
@@ -87,9 +87,9 @@ class ExpenseUpdate(BaseModel):
 
     remarks: Optional[str] = None
 
-# ============================================================
+
 # EXPENSE RESPONSE
-# ============================================================
+
 
 class ExpenseResponse(BaseModel):
 
@@ -135,17 +135,17 @@ class ExpenseResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# ============================================================
+
 # EXPENSE APPROVAL
-# ============================================================
+
 
 class ExpenseApproval(BaseModel):
 
     approved_by: int
 
-# ============================================================
+
 # EXPENSE REJECTION
-# ============================================================
+
 
 class ExpenseReject(BaseModel):
 
@@ -153,9 +153,9 @@ class ExpenseReject(BaseModel):
 
     remarks: str
 
-# ============================================================
+
 # PAYMENT METHOD RESPONSE
-# ============================================================
+
 
 class PaymentMethodResponse(BaseModel):
 
@@ -206,9 +206,9 @@ class PaymentMethodCreate(BaseModel):
 
     payment_method_name: str
 
-# ============================================================
+
 # EXPENSE PAYMENT CREATE
-# ============================================================
+
 
 class ExpensePaymentCreate(BaseModel):
 
@@ -228,9 +228,9 @@ class ExpensePaymentCreate(BaseModel):
 
     remarks: Optional[str] = None
 
-# ============================================================
+
 # EXPENSE PAYMENT RESPONSE
-# ============================================================
+
 
 class ExpensePaymentResponse(BaseModel):
 
@@ -252,9 +252,9 @@ class ExpensePaymentResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# ============================================================
+
 # EXPENSE PAID
-# ============================================================
+
 
 class ExpensePaid(BaseModel):
 
@@ -294,9 +294,9 @@ class ExpenseStatusUpdate(BaseModel):
     bank_name: Optional[str] = None
     payment_date: Optional[datetime] = None
 
-# ============================================================
+
 # DASHBOARD
-# ============================================================
+
 
 class DashboardResponse(BaseModel):
 
@@ -314,9 +314,9 @@ class DashboardResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# ============================================================
+
 # REPORT
-# ============================================================
+
 
 class ReportResponse(BaseModel):
 
@@ -327,9 +327,9 @@ class ReportResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ============================================================
+
 # EXPENSE PAYMENT DETAIL (drill-down by payment method)
-# ============================================================
+
 
 class ExpensePaymentDetailResponse(BaseModel):
 
@@ -367,9 +367,9 @@ class ExpensePaymentDetailResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# ============================================================
+
 # EXPENSE PAYMENT UPDATE (correct/add cheque & other details)
-# ============================================================
+
 
 class ExpensePaymentUpdate(BaseModel):
 
@@ -390,9 +390,9 @@ class PaymentMethodReportResponse(BaseModel):
     total_amount: Decimal
 
 
-# ============================================================
+
 # PAYMENT PERIOD REPORT
-# ============================================================
+
 
 class PaymentPeriodReportResponse(BaseModel):
     payment_method_id:int
@@ -402,9 +402,9 @@ class PaymentPeriodReportResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# ============================================================
+
 # PAYMENT PERIOD DETAIL
-# ============================================================
+
 
 class PaymentPeriodDetailResponse(BaseModel):
     payment_id:int
@@ -432,9 +432,9 @@ class PaymentPeriodDetailResponse(BaseModel):
 
 
 
-# ============================================================
+
 # SUB-VENDOR CATEGORY REQUEST
-# ============================================================
+
 
 class CategoryRequestCreate(BaseModel):
 
@@ -470,9 +470,9 @@ class CategoryRequestResponse(BaseModel):
 
         from_attributes = True
 
-# ============================================================
+
 # SUB-VENDOR SUB-CATEGORY REQUEST
-# ============================================================
+
 
 class SubCategoryRequestCreate(BaseModel):
 
@@ -512,9 +512,9 @@ class SubCategoryRequestResponse(BaseModel):
 
         from_attributes = True
 
-# ============================================================
+
 # ADMIN CATEGORY REQUEST ACTIONS
-# ============================================================
+
 
 class CategoryRequestApproval(BaseModel):
     approved_by: int
@@ -523,9 +523,9 @@ class CategoryRequestRejection(BaseModel):
     rejected_by: int
     rejection_reason: str
 
-# ============================================================
+
 # ADMIN SUBCATEGORY REQUEST ACTIONS
-# ============================================================
+
 
 class SubCategoryRequestApproval(BaseModel):
     approved_by: int
@@ -534,9 +534,9 @@ class SubCategoryRequestRejection(BaseModel):
     rejected_by: int
     rejection_reason: str        
 
-# ============================================================
+
 # SUB-VENDOR ACTIVITY LOG
-# ============================================================
+
 
 class SubVendorActivityResponse(BaseModel):
 
@@ -562,9 +562,9 @@ class SubVendorActivityResponse(BaseModel):
         from_attributes = True   
 
 
-# ============================================================
+
 # SUB-VENDOR MANAGEMENT
-# ============================================================
+
 
 class SubVendorCreate(BaseModel):
 
@@ -696,3 +696,63 @@ class CategorySubCategoryPeriodReportResponse(BaseModel):
     ]    
 
 
+class WalletResponse(BaseModel):
+    id:int
+    owner_type:str
+    owner_id: int
+    balance: Decimal
+    currency: str
+    is_active: bool
+    created_at: datetime
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class WalletTransactionCreate(BaseModel):
+    transaction_type: Literal[
+        "CREDIT",
+        "DEBIT"
+    ]
+
+    amount: Decimal
+
+    performed_by: Optional[int] = None
+
+    reference_type: Optional[str] = None
+    reference_id: Optional[int] = None
+    description: Optional[str] = None
+
+
+class WalletTransactionResponse(BaseModel):
+    id: int
+    wallet_id: int
+    performed_by: Optional[int] = None
+    transaction_type: str
+    amount: Decimal
+    balance_before: Decimal
+    balance_after: Decimal
+    reference_type: Optional[str] = None
+    reference_id: Optional[int] = None
+    description: Optional[str] = None
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminWalletTransactionCreate(BaseModel):
+    owner_type: Literal[
+        "EMPLOYEE",
+        "SUB_VENDOR"
+    ]
+    owner_id: int
+    transaction_type: Literal[
+        "CREDIT",
+        "DEBIT"
+    ]
+    amount: Decimal
+    performed_by: Optional[int] = None
+    reference_type: Optional[str] = None
+    reference_id: Optional[int] = None
+    description: Optional[str] = None
+
+class WalletDetailsResponse(BaseModel):
+    wallet: WalletResponse
+    transactions: list[WalletTransactionResponse]    

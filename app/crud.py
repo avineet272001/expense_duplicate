@@ -12,7 +12,8 @@ from sqlalchemy import func
 UPLOAD_DIR = "uploads/receipts"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 from app.models import SubVendor
-
+from decimal import Decimal
+from typing import Optional
 def create_expense(
     db: Session,
     expense: schemas.ExpenseCreate,
@@ -38,9 +39,9 @@ def create_expense(
         receipt_name = receipt.filename
         receipt_type = receipt.content_type
 
-    # ---------------------------------------------------------
+    
     # Validate payment method before creating the expense
-    # ---------------------------------------------------------
+    
 
     payment_method = (
         db.query(models.PaymentMethod)
@@ -58,9 +59,9 @@ def create_expense(
             f"Payment method '{expense.payment_method}' does not exist"
         )
 
-    # ---------------------------------------------------------
+    
     # Create expense
-    # ---------------------------------------------------------
+    
 
     db_expense = models.Expense(
         expense_number=(
@@ -315,25 +316,25 @@ def mark_as_paid(
     not merely expenses that were created.
     """
 
-    # ---------------------------------------------------------
+    
     # 1. Find the expense
-    # ---------------------------------------------------------
+    
 
     expense = get_expense_by_id(db, expense_id)
 
     if not expense:
         return None
 
-    # ---------------------------------------------------------
+    
     # 2. Expense must be Approved before payment
-    # ---------------------------------------------------------
+    
 
     if expense.status != "Approved":
         return None
 
-    # ---------------------------------------------------------
+    
     # 3. Find selected payment method
-    # ---------------------------------------------------------
+    
 
     payment_method = (
         db.query(models.PaymentMethod)
@@ -355,9 +356,9 @@ def mark_as_paid(
         .lower()
     )
 
-    # ---------------------------------------------------------
+    
     # 4. Validate payment-specific details
-    # ---------------------------------------------------------
+    
 
     # CHEQUE
     if method == "cheque":
@@ -444,9 +445,9 @@ def mark_as_paid(
                 "Transaction reference is required"
             )
 
-    # ---------------------------------------------------------
+    
     # 5. Find existing payment record, if any
-    # ---------------------------------------------------------
+    
 
     payment = (
         db.query(models.ExpensePayment)
@@ -456,9 +457,9 @@ def mark_as_paid(
         .first()
     )
 
-    # ---------------------------------------------------------
+    
     # 6. Create or update the actual payment record
-    # ---------------------------------------------------------
+    
 
     if payment is None:
 
@@ -506,24 +507,24 @@ def mark_as_paid(
             else datetime.now()
         )
 
-    # ---------------------------------------------------------
+    
     # 7. Keep the Expense payment method synchronized
-    # ---------------------------------------------------------
+    
 
     expense.payment_method = (
         payment_method.payment_method_name
     )
 
-    # ---------------------------------------------------------
+    
     # 8. Mark expense as Paid
-    # ---------------------------------------------------------
+    
 
     expense.status = "Paid"
     expense.paid_at = datetime.now()
 
-    # ---------------------------------------------------------
+    
     # 9. Save everything atomically
-    # ---------------------------------------------------------
+    
 
     try:
 
@@ -1155,19 +1156,19 @@ def get_report_date_range(
 
     period = period.lower().strip()
 
-    # --------------------------------------------------------
+    
     # DAILY
-    # --------------------------------------------------------
+    
 
     if period == "daily":
 
         start_date = report_date
         end_date = report_date
 
-    # --------------------------------------------------------
+    
     # WEEKLY
     # Monday -> Sunday
-    # --------------------------------------------------------
+    
 
     elif period == "weekly":
 
@@ -1180,9 +1181,9 @@ def get_report_date_range(
 
         end_date = start_date + timedelta(days=6)
 
-    # --------------------------------------------------------
+    
     # MONTHLY
-    # --------------------------------------------------------
+    
 
     elif period == "monthly":
 
@@ -2196,9 +2197,9 @@ def get_category_subcategory_period_report(
 
     results = (
         db.query(
-            # ----------------------------------------------------
+            
             # CATEGORY
-            # ----------------------------------------------------
+            
             models.ExpenseCategory.id.label(
                 "category_id"
             ),
@@ -2207,9 +2208,9 @@ def get_category_subcategory_period_report(
                 "category_name"
             ),
 
-            # ----------------------------------------------------
+            
             # SUBCATEGORY
-            # ----------------------------------------------------
+            
             models.ExpenseSubCategory.id.label(
                 "subcategory_id"
             ),
@@ -2218,9 +2219,9 @@ def get_category_subcategory_period_report(
                 "subcategory_name"
             ),
 
-            # ----------------------------------------------------
+            
             # TOTALS
-            # ----------------------------------------------------
+            
             func.count(
                 models.Expense.id
             ).label(
@@ -2237,35 +2238,35 @@ def get_category_subcategory_period_report(
             )
         )
 
-        # --------------------------------------------------------
+        
         # CATEGORY -> EXPENSE
-        # --------------------------------------------------------
+        
         .join(
             models.Expense,
             models.Expense.category_id
             == models.ExpenseCategory.id
         )
 
-        # --------------------------------------------------------
+        
         # EXPENSE -> SUBCATEGORY
-        # --------------------------------------------------------
+        
         .outerjoin(
             models.ExpenseSubCategory,
             models.Expense.subcategory_id
             == models.ExpenseSubCategory.id
         )
 
-        # --------------------------------------------------------
+        
         # DATE FILTER
-        # --------------------------------------------------------
+        
         .filter(
             models.Expense.expense_date >= start_date,
             models.Expense.expense_date < end_datetime
         )
 
-        # --------------------------------------------------------
+        
         # GROUPING
-        # --------------------------------------------------------
+        
         .group_by(
             models.ExpenseCategory.id,
             models.ExpenseCategory.category_name,
@@ -2274,9 +2275,9 @@ def get_category_subcategory_period_report(
             models.ExpenseSubCategory.subcategory_name
         )
 
-        # --------------------------------------------------------
+        
         # ORDER
-        # --------------------------------------------------------
+        
         .order_by(
             models.ExpenseCategory.category_name,
             models.ExpenseSubCategory.subcategory_name
@@ -2306,4 +2307,130 @@ def get_category_subcategory_period_report(
 
         for row in results
     ]
+
+def get_wallet(
+        db:Session,
+        owner_type:str,
+        owner_id:int
+):
+    return(
+        db.query(models.Wallet).filter(
+            models.Wallet.owner_type == owner_type,
+            models.Wallet.owner_id == owner_id
+        )
+        .first()
+    )
+
+def get_wallet_transactions(
+        db:Session,
+        wallet_id:int
+):
+    return(
+        db.query(models.WalletTransaction)
+        .filter(models.WalletTransaction.wallet_id == wallet_id
+
+        )
+        .order_by(
+            models.WalletTransaction.created_at.desc()
+        )
+        .all()
+    )
+
+def credit_wallet(
+        db:Session,
+        owner_type:str,
+        owner_id:int,
+        amount:Decimal,
+        performed_by: Optional[int] = None,
+        reference_type: Optional[str] = None,
+        reference_id: Optional[int] = None,
+        description: Optional[str] = None
+):
+    if amount <= 0:
+        raise ValueError(
+            "Credit Amount must be Greator than Zero"
+        )
+    wallet = get_wallet(
+        db,
+        owner_type,
+        owner_id
+    )
+    if wallet is None:
+        raise ValueError(
+            " Wallet is not Found"
+        )
+    balance_before = wallet.balance
+    wallet.balance  = balance_before + amount
+
+    transaction = models.WalletTransaction(
+        wallet_id = wallet.id,
+        transaction_type = "CREDIT",
+        amount = amount,
+        balance_before=balance_before,
+        balance_after=wallet.balance,
+        reference_type=reference_type,
+        reference_id=reference_id,
+        description=description
+    )
+    db.add(transaction)
+    db.commit()
+    db.refresh(wallet)
+    return wallet
+
+def debit_wallet(
+        db:Session,
+        owner_type:str,
+        owner_id: int,
+        amount: Decimal,
+        performed_by: Optional[int] = None,
+        reference_type: Optional[str] = None,
+        reference_id: Optional[int] = None,
+        description: Optional[str] = None
+):
+    if amount <= 0:
+        raise ValueError(
+        "Debit Amount Must be Greator than Zero"
+        )
+    wallet = get_wallet(
+        db,
+        owner_type,
+        owner_id
+    )
+    if wallet is None:
+        raise ValueError(
+            " Wallet is not Found"
+        )
+    if not wallet.is_active:
+        raise ValueError(
+            " wallet is Inactive"
+        )
+
+    if wallet.balance < amount:
+        raise ValueError(
+            " Insufficient wallet balance "
+        )
+    balance_before = wallet.balance
+    wallet.balance = balance_before - amount
+
+    transaction = models.WalletTransaction(
+        wallet_id=wallet.id,
+        transaction_type="DEBIT",
+        amount=amount,
+        balance_before=balance_before,
+        balance_after=wallet.balance,
+        reference_type=reference_type,
+        reference_id=reference_id,
+        description=description
+    )
+    db.add(transaction)
+
+    db.commit()
+    db.refresh(wallet)
+
+    return wallet
+
+
+
+
+    
 

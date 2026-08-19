@@ -25,9 +25,9 @@ def get_db():
     finally:
         db.close()
 
-# ============================================================
+
 # CATEGORY & SUBCATEGORY MANAGEMENT
-# ============================================================
+
 
 @router.post("/categories")
 def create_category_or_subcategory(
@@ -36,9 +36,9 @@ def create_category_or_subcategory(
 ):
     try:
 
-        # ----------------------------------------------------
+        
         # CREATE CATEGORY
-        # ----------------------------------------------------
+        
 
         if data.type == "category":
 
@@ -51,9 +51,9 @@ def create_category_or_subcategory(
                 category
             )
 
-        # ----------------------------------------------------
+        
         # CREATE SUBCATEGORY
-        # ----------------------------------------------------
+        
         if data.type == "subcategory":
 
             if data.category_id is None:
@@ -83,9 +83,9 @@ def create_category_or_subcategory(
             status_code=400,
             detail=str(exc)
         )
-# ============================================================
+
 # PAYMENT METHODS
-# ============================================================
+
 
 @router.get(
     "/payment-methods",
@@ -112,9 +112,9 @@ def create_payment_method(
             detail=str(exc)
         )
 
-# ============================================================
+
 # EXPENSE/PAYMENT DETAILS BY PAYMENT METHOD
-# ============================================================
+
 
 @router.get(
     "/payment-methods/{payment_method_id}/details",
@@ -134,9 +134,9 @@ def payment_method_details(
 
     return details
 
-# ============================================================
-# UPDATE / ADD PAYMENT DETAILS (e.g. correcting a cheque number)
-# ============================================================
+
+
+
 
 @router.put(
     "/expenses/{expense_id}/payment-details",
@@ -163,9 +163,9 @@ def update_payment(
 
     return payment
 
-# ============================================================
+
 # DASHBOARD
-# ============================================================
+
 
 @router.get(
     "/dashboard",
@@ -323,9 +323,50 @@ def update_expense_status(
         return expense
 
 
-# ============================================================
+
+@router.post(
+    "/wallet/transactions",
+    response_model=schemas.WalletResponse
+)
+def admin_wallet_transaction(
+    data: schemas.AdminWalletTransactionCreate,
+    db: Session = Depends(get_db)
+):
+    try:
+        if data.transaction_type == "CREDIT":
+            return crud.credit_wallet(
+                db=db,
+                owner_type=data.owner_type,
+                owner_id=data.owner_id,
+                amount=data.amount,
+                performed_by=data.performed_by,
+                reference_type=data.reference_type,
+                reference_id=data.reference_id,
+                description=data.description
+            )
+
+        if data.transaction_type == "DEBIT":
+            return crud.debit_wallet(
+                db=db,
+                owner_type=data.owner_type,
+                owner_id=data.owner_id,
+                amount=data.amount,
+                performed_by=data.performed_by,
+                reference_type=data.reference_type,
+                reference_id=data.reference_id,
+                description=data.description
+            )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        )
+
+
+
 # PAYMENT REPORTS
-# ============================================================
+
 
 @router.get("/reports/payments")
 def payment_reports(
@@ -349,16 +390,16 @@ def payment_reports(
 
     report_type = report_type.lower().strip()
 
-    # --------------------------------------------------------
+    
     # PAYMENT METHOD REPORT
-    # --------------------------------------------------------
+    
 
     if report_type == "method":
         return crud.get_payment_method_report(db)
 
-    # --------------------------------------------------------
+    
     # PAYMENT DETAILS
-    # --------------------------------------------------------
+    
 
     if report_type == "details":
         return crud.get_payment_report(
@@ -366,9 +407,9 @@ def payment_reports(
             payment_method_id=payment_method_id
         )
 
-    # --------------------------------------------------------
+    
     # PERIOD REPORT
-    # --------------------------------------------------------
+    
 
     if report_type == "period":
 
@@ -402,9 +443,9 @@ def payment_reports(
             end_date=report_end
         )
 
-    # --------------------------------------------------------
+    
     # CUSTOM DATE REPORT
-    # --------------------------------------------------------
+    
 
     if report_type == "custom":
 
@@ -426,9 +467,9 @@ def payment_reports(
             end_date=end_date
         )
 
-    # --------------------------------------------------------
+    
     # INVALID REPORT TYPE
-    # --------------------------------------------------------
+    
 
     raise HTTPException(
         status_code=400,
@@ -438,9 +479,9 @@ def payment_reports(
         )
     )
 
-# ============================================================
+
 # PAYMENT REPORT PDF
-# ============================================================
+
 
 @router.get("/reports/payments/pdf")
 def payment_report_pdf(
@@ -501,9 +542,9 @@ def payment_report_pdf(
         }
     )
 
-# ============================================================
+
 # SUB-VENDOR CATEGORY REQUESTS
-# ============================================================
+
 
 @router.get(
     "/category-requests",
@@ -529,9 +570,9 @@ def get_category_requests(
         status=status
     )
 
-# ============================================================
+
 # APPROVE CATEGORY REQUEST
-# ============================================================
+
 
 @router.put(
     "/category-requests/{request_id}/approve",
@@ -567,9 +608,9 @@ def approve_category_request(
 
     return result
 
-# ============================================================
+
 # REJECT CATEGORY REQUEST
-# ============================================================
+
 
 @router.put(
     "/category-requests/{request_id}/reject",
@@ -611,9 +652,9 @@ def reject_category_request(
 
     return result
 
-# ============================================================
+
 # SUB-VENDOR SUBCATEGORY REQUESTS
-# ============================================================
+
 
 @router.get(
     "/subcategory-requests",
@@ -634,9 +675,9 @@ def get_subcategory_requests(
         status=status
     )
 
-# ============================================================
+
 # APPROVE SUBCATEGORY REQUEST
-# ============================================================
+
 
 @router.put(
     "/subcategory-requests/{request_id}/approve",
@@ -672,9 +713,9 @@ def approve_subcategory_request(
 
     return result
 
-# ============================================================
+
 # REJECT SUBCATEGORY REQUEST
-# ============================================================
+
 
 @router.put(
     "/subcategory-requests/{request_id}/reject",
@@ -736,9 +777,9 @@ def get_sub_vendor_activities(
         action=action,
     )
 
-# ============================================================
+
 # SUB-VENDOR MANAGEMENT
-# ============================================================
+
 
 @router.get(
     "/sub-vendors",
@@ -970,9 +1011,9 @@ def category_subcategory_report(
         )
     )
 
-    # ============================================================
+    
     # BUILD CATEGORY REPORT
-    # ============================================================
+    
 
     category_data = {}
 
@@ -1021,6 +1062,50 @@ def category_subcategory_report(
         ),
         "subcategory_report": subcategory_data
     }
+
+
+@router.post(
+    "/wallet/transactions",
+    response_model=schemas.WalletResponse
+)
+def admin_wallet_transaction(
+    data: schemas.AdminWalletTransactionCreate,
+    db: Session = Depends(get_db)
+):
+    try:
+
+        if data.transaction_type == "CREDIT":
+
+            return crud.credit_wallet(
+                db=db,
+                owner_type=data.owner_type,
+                owner_id=data.owner_id,
+                amount=data.amount,
+                performed_by=data.performed_by,
+                reference_type=data.reference_type,
+                reference_id=data.reference_id,
+                description=data.description
+            )
+
+        if data.transaction_type == "DEBIT":
+
+            return crud.debit_wallet(
+                db=db,
+                owner_type=data.owner_type,
+                owner_id=data.owner_id,
+                amount=data.amount,
+                performed_by=data.performed_by,
+                reference_type=data.reference_type,
+                reference_id=data.reference_id,
+                description=data.description
+            )
+
+    except ValueError as exc:
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        )
 
     
 
