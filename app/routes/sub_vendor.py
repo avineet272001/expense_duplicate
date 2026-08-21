@@ -182,7 +182,88 @@ def sub_vendor_dashboard(
 
     return crud.get_dashboard_summary(db)
 
+@router.post(
+        "/employee",
+        response_model=schemas.EmployeeResponse
+)
 
+def Create_Employee(
+    data:schemas.EmployeeCreate,
+    db:Session = Depends(get_db),
+    current_vendor = Depends(get_current_sub_vendor)
+):
+    try:
+        employee = crud.create_employee(
+            db= db,
+            employee=data,
+            sub_vendor_id = current_vendor.id,
+            password_hash=data.password
+        )
+        return employee
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code= 404,
+            detail=str(exc)
+        )
+
+@router.patch(
+        "/employees/{employee_id}/status",
+        response_model= schemas.EmployeeResponse,
+)
+def update_employee_status(
+    employee_id:int,
+    data:schemas.EmployeeStatusUpdate,
+    db:Session = Depends(get_db),
+    current_vendor = Depends(get_current_sub_vendor)
+):
+    try:
+        employee = crud.update_employee_status(
+            db = db,
+            employee_id=employee_id,
+            sub_vendor_id=current_vendor.id,
+            is_active= data.is_active
+        )
+
+        return employee
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc)
+        )
+
+
+# wallet 
+@router.get(
+        "/wallet",
+        response_model=schemas.WalletDetailsResponse 
+        )
+def get_my_wallet(
+    db:Session = Depends(get_db),
+    current_vendor = Depends(get_current_sub_vendor)
+
+):
+    wallet = crud.get_wallet(
+        db = db,
+        owner_type="SUB_VENDOR",
+        owner_id=current_vendor.id
+    )
+
+    if wallet is None:
+        raise HTTPException(
+            status_code=404,
+            detail= "Wallet Not Found"
+        )
+    transactions = crud.get_wallet_transactions(
+        db=db,
+        wallet_id=wallet.id
+    )
+
+    return {
+        "wallet": wallet,
+        "transactions": transactions
+    }
 
 # CATEGORIES - VIEW ONLY
 

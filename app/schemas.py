@@ -756,3 +756,35 @@ class AdminWalletTransactionCreate(BaseModel):
 class WalletDetailsResponse(BaseModel):
     wallet: WalletResponse
     transactions: list[WalletTransactionResponse]    
+
+
+# Employee DB Model 
+
+class EmployeeCreate(BaseModel):
+    name:str
+    email:str
+    phone:Optional[str] = None
+    password: str
+
+
+class EmployeeResponse(BaseModel):
+    id:int
+    sub_vendor_id: int
+    name:str
+    email:str
+    phone:Optional[str] = None
+    is_active:bool
+    created_at:datetime
+    updated_at:datetime
+
+    class Config:
+        from_attributes = True
+
+
+class EmployeeStatusUpdate(BaseModel):
+    is_active:bool
+
+
+
+
+

@@ -1073,6 +1073,7 @@ def admin_wallet_transaction(
     db: Session = Depends(get_db)
 ):
     try:
+        owner_type = data.owner_type.upper()
 
         if data.transaction_type == "CREDIT":
 
@@ -1106,6 +1107,9 @@ def admin_wallet_transaction(
             status_code=400,
             detail=str(exc)
         )
+
+
+    
 
     
 

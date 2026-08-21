@@ -4,7 +4,6 @@ from sqlalchemy import func
 from fastapi import UploadFile
 from app import models, schemas
 import os
-import shutil
 import base64
 import uuid
 from datetime import date, datetime, timedelta
@@ -538,21 +537,6 @@ def mark_as_paid(
 
     return serialize_expense(expense)
 
-def _get_expenses_by_status_serialized(db: Session, status: str):
-
-    expenses = (
-        db.query(models.Expense)
-        .options(
-            joinedload(models.Expense.category),
-            joinedload(models.Expense.subcategory)
-        )
-        .filter(models.Expense.status == status)
-        .order_by(models.Expense.created_at.desc())
-        .all()
-    )
-
-    return [serialize_expense(e) for e in expenses]
-
 def get_expenses_by_status_filter(
     db: Session,
     status: str = None
@@ -582,8 +566,6 @@ def get_expenses_by_status_filter(
     ]
 
 def get_payments_by_method(db: Session, payment_method_id: int):
-    from sqlalchemy import func as sqlfunc
-
     payment_method = (
         db.query(models.PaymentMethod)
         .filter(models.PaymentMethod.id == payment_method_id)
@@ -2046,31 +2028,115 @@ def create_sub_vendor(
     )
 
     if existing:
-
         raise ValueError(
             "A sub-vendor with this email already exists"
         )
 
     vendor = SubVendor(
-
         name=sub_vendor.name,
-
         email=sub_vendor.email,
-
         phone=sub_vendor.phone,
-
         password_hash=password_hash,
-
         is_active=True
     )
 
+    
     db.add(vendor)
-
     db.commit()
 
+    
     db.refresh(vendor)
 
+    
+    wallet = models.Wallet(
+        owner_type="SUB_VENDOR",
+        owner_id=vendor.id,
+        balance=Decimal("0"),
+        is_active=True
+    )
+
+    
+    db.add(wallet)
+    db.commit()
+
     return vendor
+
+def create_employee(
+    db: Session,
+    employee,
+    sub_vendor_id: int,
+    password_hash: str
+):
+    
+    existing = (
+        db.query(models.Employee)
+        .filter(
+            models.Employee.email == employee.email
+        )
+        .first()
+    )
+
+    if existing:
+        raise ValueError(
+            "An employee with this email already exists"
+        )
+
+    
+    new_employee = models.Employee(
+        sub_vendor_id=sub_vendor_id,
+        name=employee.name,
+        email=employee.email,
+        phone=employee.phone,
+        password_hash=password_hash,
+        is_active=True
+    )
+
+    db.add(new_employee)
+
+    # 3. Generate Employee I
+    db.flush()
+
+    # 4. Create Employee Wallet
+    wallet = models.Wallet(
+        owner_type="EMPLOYEE",
+        owner_id=new_employee.id,
+        balance=Decimal("0"),
+        is_active=True
+    )
+
+    db.add(wallet)
+
+    
+    db.commit()
+
+    
+    return new_employee
+
+def update_employee_status(
+        db:Session,
+        employee_id:int,
+        sub_vendor_id:int,
+        is_active: bool
+        
+):
+
+    employee = (
+        db.query(models.Employee).filter(
+            models.Employee.id == employee_id,
+            models.Employee.sub_vendor_id == sub_vendor_id
+        ).first()
+    )
+
+    if employee is None:
+        raise ValueError(
+            "Employee Not Found "
+        )
+    employee.is_active = is_active
+
+    db.commit
+    db.refresh(employee)
+    return employee
+
 
 def get_all_sub_vendors(db: Session):
 
@@ -2370,7 +2436,8 @@ def credit_wallet(
         balance_after=wallet.balance,
         reference_type=reference_type,
         reference_id=reference_id,
-        description=description
+        description=description,
+        performed_by=performed_by
     )
     db.add(transaction)
     db.commit()
@@ -2420,7 +2487,8 @@ def debit_wallet(
         balance_after=wallet.balance,
         reference_type=reference_type,
         reference_id=reference_id,
-        description=description
+        description=description,
+        performed_by=performed_by
     )
     db.add(transaction)
 

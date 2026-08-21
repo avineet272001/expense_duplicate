@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import crud , schemas
 
+
 router = APIRouter(
     prefix="/wallet",
     tags=["Wallet"]
@@ -27,8 +28,10 @@ def get_db():
 def get_wallet_details(
     owner_type:str,
     owner_id:int,
-    db:Session= Depends(get_db)
+    db:Session= Depends(get_db),
+    
 ):
+    owner_type = owner_type.upper()
     wallet = crud.get_wallet(
         db,
         owner_type,
@@ -49,15 +52,17 @@ def get_wallet_details(
     }
 
 @router.post(
-    "/ {owner_type}/{owner_id}/transactions",
+    "/{owner_type}/{owner_id}/transactions",
     response_model=schemas.WalletResponse
 )
 def create_wallet_transaction(
     owner_type:str,
     owner_id:int,
-    data : schemas.WalletResponse,
-    db:Session = Depends(get_db)
+    data: schemas.WalletTransactionCreate,
+    db:Session = Depends(get_db),
+    
 ):
+    owner_type = owner_type.upper()
     try:
         if data.transaction_type == "CREDIT":
             return crud.credit_wallet(

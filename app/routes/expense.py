@@ -17,7 +17,7 @@ from app import crud, schemas
 
 router = APIRouter(
     prefix="/expenses",
-    tags=["Expense Management"]
+    tags=["Employee Management"]
 )
 
 
