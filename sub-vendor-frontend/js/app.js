@@ -93,13 +93,15 @@
     expenses: { title: "Expenses", subtitle: "Every expense you've logged, filterable and actionable." },
     requests: { title: "Category requests", subtitle: "Ask the admin to add categories or subcategories you need." },
     reports: { title: "Payment report", subtitle: "Payouts made, broken down by payment method." },
+    wallet: { title: "My Wallet", subtitle: "Your wallet balance and transaction history." },
   };
 
   function setView(view) {
     $$(".nav-item").forEach((btn) => btn.classList.toggle("is-active", btn.dataset.view === view));
     $$(".view").forEach((sec) => sec.classList.toggle("is-active", sec.id === `view-${view}`));
-    $("#pageTitle").textContent = pageMeta[view].title;
-    $("#pageSubtitle").textContent = pageMeta[view].subtitle;
+    const meta = pageMeta[view] || { title: "", subtitle: "" };
+    $("#pageTitle").textContent = meta.title;
+    $("#pageSubtitle").textContent = meta.subtitle;
     closeSidebar();
   }
 

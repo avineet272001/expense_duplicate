@@ -63,13 +63,15 @@
     dashboard: { title: "Dashboard", subtitle: "Overview of every rupee moving through the business." },
     expenses: { title: "Expenses", subtitle: "Every logged expense, filterable and actionable." },
     reports: { title: "Reports", subtitle: "Lifetime spend broken down by category." },
+    wallet: { title: "Wallet", subtitle: "Your wallet balance and transaction history." },
   };
 
   function setView(view) {
     $$(".nav-item").forEach((btn) => btn.classList.toggle("is-active", btn.dataset.view === view));
     $$(".view").forEach((sec) => sec.classList.toggle("is-active", sec.id === `view-${view}`));
-    $("#pageTitle").textContent = pageMeta[view].title;
-    $("#pageSubtitle").textContent = pageMeta[view].subtitle;
+    const meta = pageMeta[view] || { title: "", subtitle: "" };
+    $("#pageTitle").textContent = meta.title;
+    $("#pageSubtitle").textContent = meta.subtitle;
     closeSidebar();
   }
 

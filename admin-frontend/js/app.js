@@ -112,14 +112,16 @@
     paid: { title: "Paid", subtitle: "Full history of settled expenses." },
     rejected: { title: "Rejected", subtitle: "Declined claims and the reasons given." },
     reports: { title: "Reports", subtitle: "Lifetime spend broken down by category." },
+    wallet: { title: "Wallet", subtitle: "Look up balances and manage credits/debits for employees and sub-vendors." },
     categories: { title: "Categories", subtitle: "Manage expense categories, subcategories, and payment methods." },
   };
 
   function setView(view) {
     $$(".nav-item").forEach((btn) => btn.classList.toggle("is-active", btn.dataset.view === view));
     $$(".view").forEach((sec) => sec.classList.toggle("is-active", sec.id === `view-${view}`));
-    $("#pageTitle").textContent = pageMeta[view].title;
-    $("#pageSubtitle").textContent = pageMeta[view].subtitle;
+    const meta = pageMeta[view] || { title: "", subtitle: "" };
+    $("#pageTitle").textContent = meta.title;
+    $("#pageSubtitle").textContent = meta.subtitle;
     closeSidebar();
   }
 

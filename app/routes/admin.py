@@ -1,9 +1,10 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app import crud, schemas
+from app import crud, schemas, models
 from datetime import date
+from fastapi import Request
 from typing import List, Optional
 from fastapi.responses import StreamingResponse
 from app.models import SubVendor
@@ -11,10 +12,15 @@ from app.services.payment_report_pdf import (
     generate_payment_report_pdf
 )
 from app.firebase.notification_service import notify_safe
-
+from app.services.auth_service import create_admin_access_token
+from app.services.auth_service import get_current_admin
+from passlib.context import CryptContext
+from app.services.auth_service import get_admin_id_from_token
+password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 router = APIRouter(
     prefix="/admin",
-    tags=["Admin Management"]
+    tags=["Admin Management"],
+    # dependencies=[Depends(get_current_admin)]
 )
 
 def get_db():
@@ -25,6 +31,121 @@ def get_db():
     finally:
         db.close()
 
+def get_current_admin(request: Request):
+    token = request.cookies.get("admin_token")
+
+    if not token:
+        raise HTTPException(
+            status_code=401,
+            detail="Admin authentication required"
+        )
+
+    return get_admin_id_from_token(token)
+
+@router.post("/register")
+def register_admin(
+    admin:schemas.AdminRegister,
+    db:Session = Depends(get_db)
+):
+    return crud.create_admin(
+        db,
+        admin
+    )
+
+@router.post("/login")
+def admin_login(
+    request :schemas.AdminLogin,
+    response:Response,
+    db:Session = Depends(get_db)
+):
+    admin = (
+        db.query(models.Admin).filter(
+            models.Admin.email == request.email_id
+        ).first()
+    )
+    if admin is None:
+        raise HTTPException(
+            status_code= 404,
+            details = "Invalid Email or Password"
+        )
+
+    if not password_context.verify(
+    request.password,
+    admin.password_hash
+ ):
+     raise HTTPException(
+        status_code=401,
+        detail="Invalid email or password"
+    )
+
+    password_context.verify(
+        request.password,
+        admin.password_hash
+    )
+
+    access_token = create_admin_access_token(
+        admin.id
+    )
+
+    response.set_cookie(
+        key="admin_token",
+        value=access_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=60 * 60
+    )
+    return {
+     "success": True,
+     "message": "Admin login successful",
+     "admin_id": admin.id,
+     "name": admin.name,
+     "email": admin.email
+     }
+
+
+@router.post("/forgot Password")
+def forgot_password(
+    request:schemas.AdminForgotPassword,
+    db:Session = Depends(get_db)
+):
+    reset_token = crud.create_admin_reset_token(
+        db,
+        request.email_id
+    )
+
+    return {
+    "message": "Password reset token generated",
+    "reset_token": reset_token
+      }
+    
+
+@router.post("/reset Password")
+def reset_password(
+    request : schemas.AdminResetPassword,
+    db:Session = Depends(get_db)
+):
+    try:
+        crud.reset_admin_password(
+            db,
+            request.token,
+            request.new_password
+        )
+        return{
+            "success": True,
+            "massage": "Password Reset Successfully"
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail=str(e)
+        )
+
+
+
+
+
+
 
 # CATEGORY & SUBCATEGORY MANAGEMENT
 
@@ -32,7 +153,9 @@ def get_db():
 @router.post("/categories")
 def create_category_or_subcategory(
     data: schemas.CategoryManagementCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     try:
 
@@ -90,9 +213,12 @@ def create_category_or_subcategory(
 @router.get(
     "/payment-methods",
     response_model=List[schemas.PaymentMethodResponse]
+    
 )
 def payment_methods(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     return crud.get_all_payment_methods(db)
 
@@ -102,7 +228,9 @@ def payment_methods(
 )
 def create_payment_method(
     payment_method: schemas.PaymentMethodCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     try:
         return crud.create_payment_method(db, payment_method)
@@ -122,7 +250,9 @@ def create_payment_method(
 )
 def payment_method_details(
     payment_method_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     details = crud.get_payments_by_method(db, payment_method_id)
 
@@ -140,14 +270,15 @@ def payment_method_details(
 
 @router.put(
     "/expenses/{expense_id}/payment-details",
-    response_model=schemas.ExpensePaymentResponse
+    response_model=schemas.ExpensePaymentResponse,
+    
 )
 def update_payment(
     expense_id: int,
-    payment_update: schemas.ExpensePaymentUpdate
+    payment_update: schemas.ExpensePaymentUpdate,  
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
     
-    ,
-    db: Session = Depends(get_db)
 ):
     payment = crud.update_payment_details(
         db,
@@ -172,7 +303,9 @@ def update_payment(
     response_model=schemas.DashboardResponse
 )
 def dashboard(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     return crud.get_dashboard_summary(db)
 
@@ -182,7 +315,9 @@ def dashboard(
 )
 def get_expenses(
     status: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     return crud.get_expenses_by_status_filter(
         db,
@@ -196,7 +331,9 @@ def get_expenses(
 def update_expense_status(
     expense_id: int,
     update: schemas.ExpenseStatusUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     if update.status == "Approved":
 
@@ -330,7 +467,9 @@ def update_expense_status(
 )
 def admin_wallet_transaction(
     data: schemas.AdminWalletTransactionCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     try:
         if data.transaction_type == "CREDIT":
@@ -376,7 +515,9 @@ def payment_reports(
     report_date: Optional[date] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     """
     Payment reports.
@@ -487,7 +628,9 @@ def payment_reports(
 def payment_report_pdf(
     period: str = "monthly",
     report_date: Optional[date] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
 
     if report_date is None:
@@ -554,7 +697,9 @@ def payment_report_pdf(
 )
 def get_category_requests(
     status: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     """
     Admin can view all category requests.
@@ -581,7 +726,9 @@ def get_category_requests(
 def approve_category_request(
     request_id: int,
     approval: schemas.CategoryRequestApproval,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
 
     try:
@@ -619,7 +766,9 @@ def approve_category_request(
 def reject_category_request(
     request_id: int,
     rejection: schemas.CategoryRequestRejection,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
 
     try:
@@ -664,7 +813,9 @@ def reject_category_request(
 )
 def get_subcategory_requests(
     status: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     """
     Admin can view all subcategory requests.
@@ -686,7 +837,9 @@ def get_subcategory_requests(
 def approve_subcategory_request(
     request_id: int,
     approval: schemas.SubCategoryRequestApproval,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
 
     try:
@@ -724,7 +877,9 @@ def approve_subcategory_request(
 def reject_subcategory_request(
     request_id: int,
     rejection: schemas.SubCategoryRequestRejection,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
 
     try:
@@ -767,7 +922,9 @@ def get_sub_vendor_activities(
     user_id: Optional[int] = None,
     module: Optional[str] = None,
     action: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
 
     return crud.get_sub_vendor_activities(
@@ -786,7 +943,9 @@ def get_sub_vendor_activities(
     response_model=List[schemas.SubVendorResponse]
 )
 def get_sub_vendors(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     return crud.get_all_sub_vendors(db)
 
@@ -796,7 +955,9 @@ def get_sub_vendors(
 )
 def get_sub_vendor(
     sub_vendor_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
 
     vendor = crud.get_sub_vendor(
@@ -818,7 +979,9 @@ def get_sub_vendor(
 )
 def create_sub_vendor(
     request: schemas.SubVendorCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
 
     try:
@@ -845,7 +1008,8 @@ def create_sub_vendor(
 def update_sub_vendor(
     sub_vendor_id: int,
     request: schemas.SubVendorUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
 
     vendor = crud.get_sub_vendor(
@@ -874,7 +1038,9 @@ def update_sub_vendor(
 def update_sub_vendor_status(
     sub_vendor_id: int,
     status: schemas.SubVendorStatusUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     vendor = crud.get_sub_vendor(
         db,
@@ -899,7 +1065,9 @@ def update_sub_vendor_status(
 )
 def delete_sub_vendor(
     sub_vendor_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
 
     vendor = crud.delete_sub_vendor(
@@ -930,7 +1098,9 @@ def category_subcategory_report(
     year: Optional[int] = None,
     month: Optional[int] = None,
     report_date: Optional[date] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
 
     period = period.lower().strip()
@@ -1070,7 +1240,9 @@ def category_subcategory_report(
 )
 def admin_wallet_transaction(
     data: schemas.AdminWalletTransactionCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+    
 ):
     try:
         owner_type = data.owner_type.upper()
@@ -1112,5 +1284,8 @@ def admin_wallet_transaction(
     
 
     
+
+
+
 
 

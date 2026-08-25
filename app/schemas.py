@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from typing import Literal	
 from pydantic import BaseModel, ConfigDict
+from typing import List, Optional
 
 
 # CATEGORY
@@ -53,10 +54,11 @@ class ExpenseCreate(BaseModel):
     subcategory_id: Optional[int] = None
 
     amount: Decimal
-
+    
     payment_method: str
 
     created_by: int
+    upi_paid_by: Optional[int] = None
 
     remarks: Optional[str] = None
 
@@ -124,6 +126,7 @@ class ExpenseResponse(BaseModel):
     remarks: Optional[str] = None
 
     created_at: datetime
+    upi_paid_by: Optional[int] = None
 
     updated_at: datetime
 
@@ -134,6 +137,7 @@ class ExpenseResponse(BaseModel):
     receipt_image: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+    payment: Optional[ExpensePaymentResponse] = None
 
 
 # EXPENSE APPROVAL
@@ -172,6 +176,7 @@ class ExpenseOptionsResponse(BaseModel):
     subcategories: list[SubCategoryResponse]
 
     payment_methods: list[PaymentMethodResponse]    
+    employees: List[EmployeeResponse]
 
 
 class SubVendorOptionsResponse(BaseModel):
@@ -247,6 +252,7 @@ class ExpensePaymentResponse(BaseModel):
     transaction_reference: Optional[str] = None
 
     bank_name: Optional[str] = None
+    upi_paid_by: Optional[int] = None
 
     payment_date: Optional[datetime] = None
 
@@ -783,6 +789,31 @@ class EmployeeResponse(BaseModel):
 
 class EmployeeStatusUpdate(BaseModel):
     is_active:bool
+
+class EmployeeLogin(BaseModel):
+    email: str
+    password: str
+
+
+class AdminRegister(BaseModel):
+    Name:str
+    email_id:str
+    phone_number:str
+    password:str
+
+class AdminLogin(BaseModel):
+    email_id:str
+    password:str    
+
+class AdminForgotPassword(BaseModel):
+    email_id:str 
+
+class AdminResetPassword(BaseModel):
+    token:str
+    new_password:str
+
+
+
 
 
 

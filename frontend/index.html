@@ -33,6 +33,10 @@
         <span class="nav-icon" aria-hidden="true">&#9776;</span>
         <span>Reports</span>
       </button>
+      <button class="nav-item" data-view="wallet">
+        <span class="nav-icon" aria-hidden="true">&#128176;</span>
+        <span>Wallet</span>
+      </button>
     </nav>
 
     <div class="sidebar-foot">
@@ -173,6 +177,63 @@
         </div>
       </section>
 
+      <!-- WALLET VIEW -->
+      <section class="view" id="view-wallet">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Wallet balance</h2>
+            <span class="muted" id="walletStatusLabel">No wallet loaded yet</span>
+          </div>
+          <form id="walletLookupForm" class="form-grid" style="padding: 4px 0; margin-bottom:16px;">
+            <label class="field">
+              <span>Employee ID</span>
+              <input type="number" name="owner_id" id="walletOwnerId" min="1" required value="1">
+            </label>
+            <div class="field" style="align-items:flex-end; flex-direction: row; justify-content: flex-start;">
+              <button type="submit" class="btn btn-primary">Load wallet</button>
+            </div>
+          </form>
+          <div class="stat-strip" style="grid-template-columns: repeat(2, 1fr);">
+            <div class="stat-card">
+              <span class="stat-label">Balance</span>
+              <span class="stat-value" id="walletBalance">₹0</span>
+              <span class="stat-foot" id="walletCurrency">—</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Status</span>
+              <span class="stat-value" id="walletActiveState">—</span>
+              <span class="stat-foot" id="walletCreatedAt">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Transaction history</h2>
+            <span class="muted">Most recent first</span>
+          </div>
+          <div class="table-wrap">
+            <table class="ledger-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Balance after</th>
+                  <th>Reference</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody id="walletTransactionsBody"></tbody>
+            </table>
+            <div class="empty-state" id="walletTransactionsEmpty" hidden>
+              <p class="empty-title">No transactions yet</p>
+              <p class="muted">Wallet credits and debits from admin will show up here.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 </div>
@@ -304,5 +365,6 @@
 <div class="toast-stack" id="toastStack"></div>
 
 <script src="js/app.js"></script>
+<script src="js/wallet.js"></script>
 </body>
 </html>

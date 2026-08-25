@@ -98,8 +98,6 @@ class Expense(Base):
         nullable=False
     )
 
-    # Existing field - keeping it for compatibility
-    # with your current expense module.
     payment_method = Column(
         String(30),
         nullable=False
@@ -126,6 +124,11 @@ class Expense(Base):
         Integer,
         nullable=False
     )
+
+    upi_paid_by = Column(
+       Integer,
+       nullable=True
+     )
 
     approved_by = Column(
         Integer
@@ -165,9 +168,6 @@ class Expense(Base):
         nullable=True
     )
 
-    # --------------------------------------------------------
-    # Relationships
-    # --------------------------------------------------------
 
     category = relationship(
         "ExpenseCategory",
@@ -179,13 +179,14 @@ class Expense(Base):
         back_populates="expenses"
     )
 
-    # NEW:
-    # One expense can have one or more payment records.
+
     payments = relationship(
         "ExpensePayment",
         back_populates="expense"
     )
 
+   
+  
 
 
 # Expense Subcategory
@@ -246,8 +247,6 @@ class PaymentMethod(Base):
         nullable=False
     )
 
-    # One payment method can be used
-    # for many expense payments.
     payments = relationship(
         "ExpensePayment",
         back_populates="payment_method"
@@ -281,9 +280,12 @@ class ExpensePayment(Base):
         nullable=False
     )
 
-    # --------------------------------------------------------
-    # Payment-specific information
-    # --------------------------------------------------------
+    upi_paid_by = Column(
+        Integer,
+        nullable=True
+    )
+
+
 
     # Used when payment method is Cheque
     cheque_number = Column(
@@ -291,14 +293,12 @@ class ExpensePayment(Base):
         nullable=True
     )
 
-    # Used for bank account/card identification.
-    # Only the last 4 digits should be stored.
+
     account_last_four = Column(
         String(4),
         nullable=True
     )
 
-    # UPI / NEFT / IMPS / Card transaction reference
     transaction_reference = Column(
         String(100),
         nullable=True
@@ -315,9 +315,8 @@ class ExpensePayment(Base):
         nullable=True
     )
 
-    # --------------------------------------------------------
-    # Relationships
-    # --------------------------------------------------------
+
+
 
     expense = relationship(
         "Expense",
@@ -813,3 +812,50 @@ class NotificationToken(Base):
         onupdate=func.now(),
         nullable=False
     )    
+
+class Admin(Base):
+
+    __tablename__ = "admins"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    name = Column(
+        String(50),
+        nullable=False
+    )
+
+    email = Column(
+        String(255),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    phone = Column(
+        String(30),
+        nullable=False
+    )
+
+    password_hash = Column(
+        String(255),
+        nullable=False
+    )
+
+    reset_token = Column(
+        String(255),
+        nullable=True
+    )
+
+    reset_token_expires_at = Column(
+        String(255),
+        nullable=True
+    )
+
+
+
+    
+

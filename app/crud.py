@@ -13,6 +13,18 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 from app.models import SubVendor
 from decimal import Decimal
 from typing import Optional
+from datetime import datetime, timezone
+from passlib.context import CryptContext
+from datetime import datetime, timedelta, timezone
+
+password_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
+
+def password_hash(password: str) -> str:
+    return password_context.hash(password)
+
 def create_expense(
     db: Session,
     expense: schemas.ExpenseCreate,
@@ -78,6 +90,7 @@ def create_expense(
         amount=expense.amount,
 
         payment_method=payment_method.payment_method_name,
+        upi_paid_by=expense.upi_paid_by,
 
         created_by=expense.created_by,
         remarks=expense.remarks,
@@ -135,15 +148,23 @@ def serialize_expense(expense):
         "receipt_image": image
     }
 
-def get_all_expenses(db: Session):
+def get_all_expenses(db: Session, employee_id: int):
 
     expenses = db.query(models.Expense).options(
         joinedload(models.Expense.category),
         joinedload(models.Expense.subcategory)
-    ).order_by(models.Expense.created_at.desc()).all()
+    ).filter(
+        models.Expense.created_by == employee_id
+    ).order_by(
+        models.Expense.created_at.desc()
+    ).all()
 
-    return [serialize_expense(expense) for expense in expenses]
-def get_expense_by_id(db: Session, expense_id: int):
+    return [
+        serialize_expense(expense)
+        for expense in expenses
+    ]
+
+def get_expense_by_id(db: Session, expense_id: int,employee_id:int):
 
     return (
 
@@ -152,14 +173,15 @@ def get_expense_by_id(db: Session, expense_id: int):
             joinedload(models.Expense.subcategory)
         )
 
-        .filter(models.Expense.id == expense_id)
+        .filter(models.Expense.id == expense_id,
+                models.Expense.created_by == employee_id)
 
         .first()
 
     )
 
-def get_expense_by_id_serialized(db: Session, expense_id: int):
-    return serialize_expense(get_expense_by_id(db, expense_id))
+def get_expense_by_id_serialized(db: Session, expense_id: int,employee_id:int):
+    return serialize_expense(get_expense_by_id(db, expense_id,employee_id))
 
 def update_expense(
 
@@ -411,6 +433,11 @@ def mark_as_paid(
                 "Transaction reference is required for digital payment"
             )
 
+        if not payment_data.upi_paid_by:
+            raise ValueError(
+                "Employee who made the UPI is required "
+            )
+
     # BANK PAYMENT
     elif method in [
         "bank account",
@@ -469,6 +496,8 @@ def mark_as_paid(
             account_last_four=payment_data.account_last_four,
             transaction_reference=payment_data.transaction_reference,
             bank_name=payment_data.bank_name,
+            upi_paid_by=payment_data.upi_paid_by,
+
             payment_date=(
                 payment_data.payment_date
                 if payment_data.payment_date
@@ -500,6 +529,10 @@ def mark_as_paid(
             payment_data.bank_name
         )
 
+        payment.upi_paid_by = (
+         payment_data.upi_paid_by
+         )
+
         payment.payment_date = (
             payment_data.payment_date
             if payment_data.payment_date
@@ -522,7 +555,7 @@ def mark_as_paid(
     expense.paid_at = datetime.now()
 
     
-    # 9. Save everything atomically
+    # 9. Save everything
     
 
     try:
@@ -2496,6 +2529,116 @@ def debit_wallet(
     db.refresh(wallet)
 
     return wallet
+
+
+def get_all_employees(db: Session):
+    return (
+        db.query(models.Employee)
+        .filter(
+            models.Employee.is_active == True
+        )
+        .all()
+    )
+
+def create_admin(
+    db: Session,
+    admin: schemas.AdminRegister
+):
+    existing_admin = (
+        db.query(models.Admin)
+        .filter(
+            models.Admin.email == admin.email_id
+        )
+        .first()
+    )
+
+    if existing_admin:
+        raise ValueError(
+            "Admin with this email already exists"
+        )
+
+    hashed_password = password_hash(admin.password)
+
+    db_admin = models.Admin(
+        name=admin.Name,
+        email=admin.email_id,
+        phone=admin.phone_number,
+        password_hash=hashed_password
+    )
+
+    db.add(db_admin)
+    db.commit()
+    db.refresh(db_admin)
+
+    return db_admin
+
+
+import secrets
+from datetime import datetime, timedelta, timezone
+
+def create_admin_reset_token(
+        db:Session,
+        email_id:str
+):
+    admin = (
+        db.query(models.Admin).filter(
+            models.Admin.email == email_id
+        ).first()
+    )
+    if admin is None:
+        raise ValueError(
+            "Admin Does Not Exit"
+        )
+    reset_token = secrets.token_urlsafe(32)
+    admin.reset_token = reset_token
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+    admin.reset_token_expires_at = expires_at
+    db.commit()
+    db.refresh(admin)
+
+    return reset_token
+
+
+def reset_admin_password(
+        db:Session,
+        token:str,
+        new_password:str
+):
+    admin = (
+        db.query(models.Admin).filter(
+            models.Admin.reset_token == token
+        ).first()
+    )
+
+    if admin is None:
+        raise ValueError(
+            "Invalid Reset the Token "
+        )
+    if (
+        admin.reset_token_expires_at is None or 
+        admin.reset_token_expires_at < datetime.now()
+    ):
+        raise ValueError(
+            " Reset Token has experied"
+        )
+
+    hashed_password = password_context.hash(
+        new_password
+    )
+
+    admin.password_hash = hashed_password
+
+    admin.reset_token = None
+    admin.reset_token_expires_at = None
+
+    db.commit()
+    db.refresh(admin)
+
+    return True
+
+
+    
+    
 
 
 
