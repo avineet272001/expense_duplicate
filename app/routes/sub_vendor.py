@@ -15,7 +15,7 @@ from fastapi import (
     Request,
 )
 from jose import JWTError, jwt
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from app.services.auth_service import (
     SECRET_KEY,
@@ -30,11 +30,27 @@ from app import crud, schemas, models
 from app.config import ADMIN_USER_ID
 from app.firebase.notification_service import notify_safe
 
-
+import uuid
+from app.services.auth_service import (
+    SECRET_KEY,
+    ALGORITHM
+)
 from app.services.auth_service import (
     create_access_token,
     get_sub_vendor_id_from_token
 )
+
+
+def create_sub_vendor_access_token(vendor_id: int, jti: str):
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    payload = {
+        "sub": str(vendor_id),
+        "jti": jti,
+        "type": "sub_vendor",
+        "exp": expires_at
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return token, expires_at
 
 
 
@@ -170,13 +186,83 @@ def get_current_sub_vendor(
 
     return sub_vendor
 
+# @router.post("/login")
+# def sub_vendor_login(
+#     request: schemas.SubVendorLogin,
+#     response: Response,
+#     db: Session = Depends(get_db)
+# ):
+
+#     vendor = (
+#         db.query(models.SubVendor)
+#         .filter(
+#             models.SubVendor.email == request.email
+#         )
+#         .first()
+#     )
+
+#     if vendor is None:
+
+#         raise HTTPException(
+#             status_code=401,
+#             detail="Invalid email or password"
+#         )
+
+   
+
+#     if not vendor.is_active:
+
+#         raise HTTPException(
+#             status_code=403,
+#             detail=(
+#                 "You are not allowed to login. "
+#                 "Your account has been deactivated "
+#                 "by the administrator."
+#             )
+#         )
+
+   
+
+#     if vendor.password_hash != request.password:
+
+#         raise HTTPException(
+#             status_code=401,
+#             detail="Invalid email or password"
+#         )
+
+
+
+#     access_token = create_access_token(
+#         vendor.id
+#     )
+
+ 
+
+#     response.set_cookie(
+#         key="sub_vendor_token",
+#         value=access_token,
+#         httponly=True,
+#         secure=False,      
+#         samesite="lax",
+#         max_age=60 * 60
+#     )
+
+#     return {
+#         "success": True,
+#         "message": "Sub-vendor login successful",
+#         "sub_vendor_id": vendor.id,
+#         "name": vendor.name,
+#         "email": vendor.email,
+#         "is_active": vendor.is_active
+#     }
+
+
 @router.post("/login")
 def sub_vendor_login(
     request: schemas.SubVendorLogin,
     response: Response,
     db: Session = Depends(get_db)
 ):
-
     vendor = (
         db.query(models.SubVendor)
         .filter(
@@ -186,16 +272,12 @@ def sub_vendor_login(
     )
 
     if vendor is None:
-
         raise HTTPException(
             status_code=401,
             detail="Invalid email or password"
         )
 
-   
-
     if not vendor.is_active:
-
         raise HTTPException(
             status_code=403,
             detail=(
@@ -205,28 +287,38 @@ def sub_vendor_login(
             )
         )
 
-   
-
     if vendor.password_hash != request.password:
-
         raise HTTPException(
             status_code=401,
             detail="Invalid email or password"
         )
 
+    
+    jti = str(uuid.uuid4())
 
-
-    access_token = create_access_token(
-        vendor.id
+    
+    access_token, expires_at = create_sub_vendor_access_token(
+        vendor.id,
+        jti
     )
 
- 
+    
+    auth_session = models.AuthSession(
+        user_id=vendor.id,
+        user_type="sub_vendor",
+        jti=jti,
+        expires_at=expires_at
+    )
 
+    db.add(auth_session)
+    db.commit()
+
+    
     response.set_cookie(
         key="sub_vendor_token",
         value=access_token,
         httponly=True,
-        secure=False,      
+        secure=False,
         samesite="lax",
         max_age=60 * 60
     )
@@ -239,9 +331,6 @@ def sub_vendor_login(
         "email": vendor.email,
         "is_active": vendor.is_active
     }
-
-
-
 
 # DATABASE
 
