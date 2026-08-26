@@ -14,6 +14,13 @@ from fastapi import (
     Form,
     Request,
 )
+from jose import JWTError, jwt
+from datetime import datetime, timezone
+
+from app.services.auth_service import (
+    SECRET_KEY,
+    ALGORITHM
+)
 from fastapi import Response, Cookie
 from app.services.email_service import send_activity_email_safe
 from sqlalchemy.orm import Session
@@ -49,36 +56,119 @@ def get_db():
         db.close()
 
 
+# def get_current_sub_vendor(
+#     request: Request,
+#     db: Session = Depends(get_db)
+# ):
+#     token = request.cookies.get("sub_vendor_token")
+#     if not token:
+#         raise HTTPException(
+#             status_code=401,
+#             detail="Not authenticated"
+#         )
+    
+#     vendor_id = get_sub_vendor_id_from_token(token)
+#     if not vendor_id:
+#         raise HTTPException(
+#             status_code=401,
+#             detail="Invalid token"
+#         )
+    
+#     vendor = db.query(models.SubVendor).filter(
+#         models.SubVendor.id == vendor_id
+#     ).first()
+    
+#     if not vendor:
+#         raise HTTPException(
+#             status_code=401,
+#             detail="Sub-vendor not found"
+#         )
+    
+#     return vendor
 def get_current_sub_vendor(
     request: Request,
     db: Session = Depends(get_db)
 ):
     token = request.cookies.get("sub_vendor_token")
+
     if not token:
         raise HTTPException(
             status_code=401,
-            detail="Not authenticated"
+            detail="Sub-vendor authentication required"
         )
-    
-    vendor_id = get_sub_vendor_id_from_token(token)
-    if not vendor_id:
+
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+
+        sub_vendor_id = payload.get("sub")
+        jti = payload.get("jti")
+        user_type = payload.get("type")
+
+        if sub_vendor_id is None or jti is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid authentication token"
+            )
+
+        if user_type != "sub_vendor":
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid sub-vendor token"
+            )
+
+    except JWTError:
         raise HTTPException(
             status_code=401,
-            detail="Invalid token"
+            detail="Invalid or expired token"
         )
-    
-    vendor = db.query(models.SubVendor).filter(
-        models.SubVendor.id == vendor_id
-    ).first()
-    
-    if not vendor:
+
+    session = (
+        db.query(models.AuthSession)
+        .filter(
+            models.AuthSession.jti == jti,
+            models.AuthSession.user_id == int(sub_vendor_id),
+            models.AuthSession.user_type == "sub_vendor"
+        )
+        .first()
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid session"
+        )
+
+    if session.revoked_at is not None:
+        raise HTTPException(
+            status_code=401,
+            detail="Session has been revoked"
+        )
+
+    if session.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=401,
+            detail="Session has expired"
+        )
+
+    sub_vendor = (
+        db.query(models.SubVendor)
+        .filter(
+            models.SubVendor.id == int(sub_vendor_id)
+        )
+        .first()
+    )
+
+    if sub_vendor is None:
         raise HTTPException(
             status_code=401,
             detail="Sub-vendor not found"
         )
-    
-    return vendor
 
+    return sub_vendor
 
 @router.post("/login")
 def sub_vendor_login(
@@ -776,9 +866,7 @@ def get_current_sub_vendor(
             detail="Sub-vendor account not found"
         )
 
-    # --------------------------------------------------------
-    # ADMIN CAN DEACTIVATE ACCOUNT
-    # --------------------------------------------------------
+  
 
     if not vendor.is_active:
 
@@ -791,3 +879,42 @@ def get_current_sub_vendor(
         )
 
     return vendor
+
+
+@router.post("/logout")
+def sub_vendor_logout(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_sub_vendor = Depends(get_current_sub_vendor)
+):
+    token = request.cookies.get("sub_vendor_token")
+
+    payload = jwt.decode(
+        token,
+        SECRET_KEY,
+        algorithms=[ALGORITHM]
+    )
+
+    jti = payload.get("jti")
+
+    session = (
+        db.query(models.AuthSession)
+        .filter(
+            models.AuthSession.jti == jti,
+            models.AuthSession.user_id == current_sub_vendor.id,
+            models.AuthSession.user_type == "sub_vendor"
+        )
+        .first()
+    )
+
+    if session:
+        session.revoked_at = datetime.now(timezone.utc)
+        db.commit()
+
+    response.delete_cookie("sub_vendor_token")
+
+    return {
+        "success": True,
+        "message": "Sub-vendor logout successful"
+    }

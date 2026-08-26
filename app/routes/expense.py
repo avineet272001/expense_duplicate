@@ -1,7 +1,8 @@
 from datetime import date
 from decimal import Decimal
 from typing import List, Optional
-
+from datetime import date, datetime, timezone
+from jose import JWTError, jwt
 from fastapi import (
     APIRouter,
     Depends,
@@ -11,6 +12,11 @@ from fastapi import (
     Form,
     Response,
     Request,
+)
+import uuid
+from app.services.auth_service import (
+    SECRET_KEY,
+    ALGORITHM
 )
 from sqlalchemy.orm import Session
 
@@ -36,21 +42,112 @@ def get_db():
     finally:
         db.close()
 
-def get_current_employee(
-        request: Request,
-        db: Session = Depends(get_db)
+# async def get_current_employee(
+#         request: Request,
+#         db: Session = Depends(get_db)
+# ):
+#     token =  request.cookies.get("employee_token")
+#     if not token:
+#         raise HTTPException(
+#             status_code=401,
+#             detail="Employee authentication required"
+#         )
+#     employee_id = get_employee_id_from_token(token)
+#     employee = (
+#         db.query(models.Employee)
+#         .filter(
+#             models.Employee.id == employee_id
+#         )
+#         .first()
+#     )
+
+#     if employee is None:
+#         raise HTTPException(
+#             status_code=401,
+#             detail="Employee not found"
+#         )
+#         if not employee.is_active:
+#          raise HTTPException(
+#             status_code=403,
+#             detail="Employee account is deactivated"
+#         )
+
+#     return employee
+
+
+async def get_current_employee(
+    request: Request,
+    db: Session = Depends(get_db)
 ):
-    token =  request.cookies.get("employee_token")
+    token = request.cookies.get("employee_token")
+
     if not token:
         raise HTTPException(
             status_code=401,
             detail="Employee authentication required"
         )
-    employee_id = get_employee_id_from_token(token)
+
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+
+        employee_id = payload.get("sub")
+        jti = payload.get("jti")
+        user_type = payload.get("type")
+
+        if employee_id is None or jti is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid authentication token"
+            )
+
+        if user_type != "employee":
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid employee token"
+            )
+
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token"
+        )
+
+    session = (
+        db.query(models.AuthSession)
+        .filter(
+            models.AuthSession.jti == jti,
+            models.AuthSession.user_id == int(employee_id),
+            models.AuthSession.user_type == "employee"
+        )
+        .first()
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid session"
+        )
+
+    if session.revoked_at is not None:
+        raise HTTPException(
+            status_code=401,
+            detail="Session has been revoked"
+        )
+
+    if session.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=401,
+            detail="Session has expired"
+        )
+
     employee = (
         db.query(models.Employee)
         .filter(
-            models.Employee.id == employee_id
+            models.Employee.id == int(employee_id)
         )
         .first()
     )
@@ -60,16 +157,90 @@ def get_current_employee(
             status_code=401,
             detail="Employee not found"
         )
-        if not employee.is_active:
-         raise HTTPException(
+
+    if not employee.is_active:
+        raise HTTPException(
             status_code=403,
             detail="Employee account is deactivated"
         )
 
     return employee
 
+# @router.post("/login")
+# async def employee_login(
+#     request: schemas.EmployeeLogin,
+#     response: Response,
+#     db: Session = Depends(get_db)
+# ):
+    
+
+#     employee = (
+#         db.query(models.Employee)
+#         .filter(
+#             models.Employee.email == request.email
+#         )
+#         .first()
+#     )
+
+#     if employee is None:
+#         raise HTTPException(
+#             status_code=401,
+#             detail="Invalid email or password"
+#         )
 
 
+    
+
+#     if not employee.is_active:
+#         raise HTTPException(
+#             status_code=403,
+#             detail=(
+#                 "You are not allowed to login. "
+#                 "Your account has been deactivated "
+#                 "by the sub-vendor."
+#             )
+#         )
+
+
+    
+
+#     if employee.password_hash != request.password:
+#         raise HTTPException(
+#             status_code=401,
+#             detail="Invalid email or password"
+#         )
+
+
+    
+
+#     access_token = create_employee_access_token(
+#         employee.id
+#     )
+
+
+    
+
+#     response.set_cookie(
+#         key="employee_token",
+#         value=access_token,
+#         httponly=True,
+#         secure=False,
+#         samesite="lax",
+#         max_age=60 * 60
+#     )
+
+
+    
+
+#     return {
+#         "success": True,
+#         "message": "Employee login successful",
+#         "employee_id": employee.id,
+#         "sub_vendor_id": employee.sub_vendor_id,
+#         "name": employee.name,
+#         "email": employee.email,
+#         "is_active": employee.is_active
+#     }
 
 @router.post("/login")
 def employee_login(
@@ -77,8 +248,6 @@ def employee_login(
     response: Response,
     db: Session = Depends(get_db)
 ):
-    
-
     employee = (
         db.query(models.Employee)
         .filter(
@@ -93,9 +262,6 @@ def employee_login(
             detail="Invalid email or password"
         )
 
-
-    
-
     if not employee.is_active:
         raise HTTPException(
             status_code=403,
@@ -106,25 +272,33 @@ def employee_login(
             )
         )
 
-
-    
-
     if employee.password_hash != request.password:
         raise HTTPException(
             status_code=401,
             detail="Invalid email or password"
         )
 
+    # Create unique session ID
+    jti = str(uuid.uuid4())
 
-    
-
-    access_token = create_employee_access_token(
-        employee.id
+    # Create JWT
+    access_token, expires_at = create_employee_access_token(
+        employee.id,
+        jti
     )
 
+    # Create database session
+    auth_session = models.AuthSession(
+        user_id=employee.id,
+        user_type="employee",
+        jti=jti,
+        expires_at=expires_at
+    )
 
-    
+    db.add(auth_session)
+    db.commit()
 
+    # Store token in browser
     response.set_cookie(
         key="employee_token",
         value=access_token,
@@ -133,9 +307,6 @@ def employee_login(
         samesite="lax",
         max_age=60 * 60
     )
-
-
-    
 
     return {
         "success": True,
@@ -146,12 +317,11 @@ def employee_login(
         "email": employee.email,
         "is_active": employee.is_active
     }
-
 @router.get(
     "/options",
     response_model=schemas.ExpenseOptionsResponse
 )
-def get_expense_options(
+async def get_expense_options(
     db: Session = Depends(get_db),
     current_employee_id: int = Depends(get_current_employee)
     
@@ -167,7 +337,7 @@ def get_expense_options(
     "/",
     response_model=schemas.ExpenseResponse
 )
-def create_expense(
+async def create_expense(
     expense_date: date = Form(...),
     title: str = Form(...),
     description: Optional[str] = Form(None),
@@ -301,6 +471,44 @@ def delete_expense(
 
     return {
         "message": "Expense deleted successfully"
+    }
+
+@router.post("/logout")
+def employee_logout(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_employee = Depends(get_current_employee)
+):
+    token = request.cookies.get("employee_token")
+
+    payload = jwt.decode(
+        token,
+        SECRET_KEY,
+        algorithms=[ALGORITHM]
+    )
+
+    jti = payload.get("jti")
+
+    session = (
+        db.query(models.AuthSession)
+        .filter(
+            models.AuthSession.jti == jti,
+            models.AuthSession.user_id == current_employee.id,
+            models.AuthSession.user_type == "employee"
+        )
+        .first()
+    )
+
+    if session:
+        session.revoked_at = datetime.now(timezone.utc)
+        db.commit()
+
+    response.delete_cookie("employee_token")
+
+    return {
+        "success": True,
+        "message": "Employee logout successful"
     }
 
 

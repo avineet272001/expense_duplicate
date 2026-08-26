@@ -269,7 +269,14 @@ def approve_expense(
 
 ):
 
-    expense = get_expense_by_id(db, expense_id)
+    # expense = get_expense_by_id(db, expense_id)
+    expense = (
+    db.query(models.Expense)
+    .filter(
+        models.Expense.id == expense_id
+     )
+     .first()
+     )
 
     if not expense:
         return None
@@ -287,7 +294,7 @@ def approve_expense(
 
     db.refresh(expense)
 
-    return serialize_expense(expense)
+    return expense
 
 def reject_expense(
 

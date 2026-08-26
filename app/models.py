@@ -510,6 +510,12 @@ class SubVendor(Base):
         nullable=False
     )
 
+    token_version = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
 class Wallet(Base):
     __tablename__ = "wallets"
 
@@ -703,6 +709,12 @@ class Employee(Base):
         nullable=False
     )
 
+    token_version = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
 # SUB-VENDOR ACTIVITY LOG
 
 
@@ -855,7 +867,55 @@ class Admin(Base):
         nullable=True
     )
 
+    token_version = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
+class AuthSession(Base):
+    __tablename__ = "auth_session"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index = True,
+    )
+
+    user_id = Column(
+        Integer,
+        nullable=False,
+        index = True
+    )
+
+    user_type = Column(
+        String(30),
+        nullable=False,
+        index=True
+    )
+
+    jti = Column(
+        String(255),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    expires_at = Column(
+        TIMESTAMP(timezone=True),
+        nullable=False
+    )
+
+    revoked_at = Column(
+        TIMESTAMP(timezone=True),
+        nullable=True
+    )
+
+    created_at = Column(
+        TIMESTAMP(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
 
 
-    
 

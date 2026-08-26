@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, timezone
-
+from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from fastapi import HTTPException, status
-
+import uuid
 from fastapi import Request, HTTPException, status
 SECRET_KEY = "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET"
 ALGORITHM = "HS256"
@@ -61,8 +61,28 @@ def get_sub_vendor_id_from_token(token: str):
         raise credentials_exception
 
 
-def create_employee_access_token(employee_id: int):
+# def create_employee_access_token(employee_id: int):
 
+#     expire = datetime.now(timezone.utc) + timedelta(
+#         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+#     )
+
+#     payload = {
+#         "sub": str(employee_id),
+#         "type": "employee",
+#         "exp": expire
+#     }
+
+#     return jwt.encode(
+#         payload,
+#         SECRET_KEY,
+#         algorithm=ALGORITHM
+#     )
+
+def create_employee_access_token(
+    employee_id: int,
+    jti: str
+):
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
@@ -70,14 +90,17 @@ def create_employee_access_token(employee_id: int):
     payload = {
         "sub": str(employee_id),
         "type": "employee",
+        "jti": jti,
         "exp": expire
     }
 
-    return jwt.encode(
+    token = jwt.encode(
         payload,
         SECRET_KEY,
         algorithm=ALGORITHM
     )
+
+    return token, expire
 
 
 def get_employee_id_from_token(token: str):
@@ -134,26 +157,51 @@ def get_current_employee(
 
 
 
-def create_admin_access_token(admin_id:int):
+# def create_admin_access_token(admin_id:int,token_version:int):
 
+#     expire = datetime.now(timezone.utc) + timedelta(
+#         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+#     )
+
+#     payload =   {
+#      "sub": str(admin_id),
+#      "type": "admin",
+#      "exp": expire
+#        }    
+
+#     return jwt.encode(
+#         payload,
+     
+#         SECRET_KEY,
+#         algorithm=ALGORITHM
+#     )
+def create_admin_access_token(
+    admin_id: int,
+    jti: str
+ ):
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
-    payload =   {
-     "sub": str(admin_id),
-     "type": "admin",
-     "exp": expire
-       }    
+    payload = {
+        "sub": str(admin_id),
+        "type": "admin",
+        "jti": jti,
+        "exp": expire
+    }
 
-    return jwt.encode(
+    token = jwt.encode(
         payload,
-     
         SECRET_KEY,
         algorithm=ALGORITHM
     )
 
-def get_admin_id_from_token(token:str):
+    return token, expire
+def get_admin_id_from_token(
+        token:str,
+        db:Session
+
+        ):
         credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired authentication token",

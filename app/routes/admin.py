@@ -11,6 +11,14 @@ from app.models import SubVendor
 from app.services.payment_report_pdf import (
     generate_payment_report_pdf
 )
+from jose import JWTError, jwt
+from datetime import datetime, timezone
+
+from app.services.auth_service import (
+    SECRET_KEY,
+    ALGORITHM
+)
+import uuid
 from app.firebase.notification_service import notify_safe
 from app.services.auth_service import create_admin_access_token
 from app.services.auth_service import get_current_admin
@@ -31,16 +39,81 @@ def get_db():
     finally:
         db.close()
 
-def get_current_admin(request: Request):
-    token = request.cookies.get("admin_token")
+# def get_current_admin(
+#     request: Request,
+#     db: Session = Depends(get_db)
 
+#     ):
+#     token = request.cookies.get("admin_token")
+
+#     if not token:
+#         raise HTTPException(
+#             status_code=401,
+#             detail="Admin authentication required"
+#         )
+
+#     return get_admin_id_from_token(token,db)
+
+
+def get_current_admin(
+        request:Request,
+        db:Session = Depends(get_db)
+        
+):
+    token = request.cookies.get("admin_token")
     if not token:
         raise HTTPException(
             status_code=401,
-            detail="Admin authentication required"
+            detail="Admin Authentication Required"
+        )
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+        admin_id = payload.get("sub")
+        jti = payload.get("jti")
+
+        if admin_id is None or jti is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid Authentication Token"
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expire Token"
+        )
+    Session = (
+        db.query(models.AuthSession).filter(
+            models.AuthSession.jti == jti,
+            models.AuthSession.user_id == int(admin_id),
+            models.AuthSession.user_type == "admin"
+        ).first()
+    )    
+
+    if Session is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Session"
         )
 
-    return get_admin_id_from_token(token)
+    if Session.revoked_at is not None:
+        raise HTTPException(
+            status_code=401,
+            detail="Session has been revoked"
+        )
+
+    if Session.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=401,
+            detail="Session is Expired"
+        )
+    return int(admin_id)
+
+
+
 
 @router.post("/register")
 def register_admin(
@@ -78,14 +151,29 @@ def admin_login(
         detail="Invalid email or password"
     )
 
-    password_context.verify(
-        request.password,
-        admin.password_hash
+
+    # access_token = create_admin_access_token(
+    #     admin.id,
+    #     admin.token_version
+    # )
+
+    jti = str(uuid.uuid4())
+
+    access_token, expires_at = create_admin_access_token(
+    admin.id,
+    jti
+     )
+
+    auth_session = models.AuthSession(
+        user_id = admin.id,
+        user_type = "admin",
+        jti = jti,
+        expires_at = expires_at
     )
 
-    access_token = create_admin_access_token(
-        admin.id
-    )
+    db.add(auth_session)
+    db.commit()
+    db.refresh(auth_session)
 
     response.set_cookie(
         key="admin_token",
@@ -356,8 +444,8 @@ def update_expense_status(
             )
 
         notify_safe(
-            db=db,
-            user_id=expense.created_by,
+            db,
+            expense.created_by,
             title="Expense approved",
             body=f"Your expense '{expense.title}' was approved"
         )
@@ -1279,6 +1367,74 @@ def admin_wallet_transaction(
             status_code=400,
             detail=str(exc)
         )
+
+
+# @router.post("/logout")
+# def admin_logout(
+#     request:Request,
+#     response:Response,
+#     db:Session = Depends(get_db),
+#     current_admin_id:int = Depends(get_current_admin)
+# ):
+#     admin = (
+#         db.query(models.Admin)
+#         .filter(
+#             models.Admin.id == current_admin_id
+#         )
+#         .first()
+#     )    
+#     if admin is None:
+#         raise HTTPException(
+#             status_code=404,
+#             detail="Admin not Found "
+#         )
+#     admin.token_version += 1
+#     db.commit()
+#     response.delete_cookie(
+#         key = "admin_token"
+#     )
+#     return {
+#         "success":True,
+#         "massage": "Admin logout Sucessfully"
+#     }
+
+@router.post("/logout")
+def admin_logout(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+):
+    token = request.cookies.get("admin_token")
+
+    payload = jwt.decode(
+        token,
+        SECRET_KEY,
+        algorithms=[ALGORITHM]
+    )
+
+    jti = payload.get("jti")
+
+    session = (
+        db.query(models.AuthSession)
+        .filter(
+            models.AuthSession.jti == jti,
+            models.AuthSession.user_id == current_admin_id,
+            models.AuthSession.user_type == "admin"
+        )
+        .first()
+    )
+
+    if session:
+        session.revoked_at = datetime.now(timezone.utc)
+        db.commit()
+
+    response.delete_cookie("admin_token")
+
+    return {
+        "success": True,
+        "message": "Admin logout successfully"
+    }
 
 
     
