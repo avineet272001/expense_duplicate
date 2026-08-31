@@ -812,6 +812,15 @@ class AdminResetPassword(BaseModel):
     token:str
     new_password:str
 
+class EmployeeForgeotPassword(BaseModel):
+    email:str
+
+class EmployeeResetPassword(BaseModel):
+    token:str
+    new_password:str
+    confirm_password:str
+
+    
 
 
 

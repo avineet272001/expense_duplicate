@@ -43,7 +43,18 @@
   }
 
   async function api(path, options = {}) {
-    const res = await fetch(API + path, options);
+    const opts = { ...options, credentials: "same-origin" };
+    if (opts.json !== undefined) {
+      opts.headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+      opts.body = JSON.stringify(opts.json);
+      delete opts.json;
+    }
+    const res = await fetch(API + path, opts);
+    if (res.status === 401 && window.LedgerSession) {
+      // Session cookie missing / expired / revoked server-side — bounce to login.
+      window.LedgerSession.goToLogin();
+      return new Promise(() => {}); // halt this call chain, we're navigating away
+    }
     if (!res.ok) {
       let detail = res.statusText;
       try {
@@ -94,10 +105,16 @@
   /* ----------------------------------------------------------
      Data loading
   ---------------------------------------------------------- */
-  async function loadCategories() {
-    state.categories = await api("/expenses/categories");
-    const selects = [$("#filterCategory"), $("#categorySelect")];
-    selects.forEach((sel) => {
+  async function loadOptions() {
+    // Real backend endpoint: GET /expenses/options returns
+    // { categories, subcategories, payment_methods, employees } in one call.
+    const options = await api("/expenses/options");
+    state.categories = options.categories || [];
+    state.subcategoriesAll = options.subcategories || [];
+    state.paymentMethods = options.payment_methods || [];
+
+    const catSelects = [$("#filterCategory"), $("#categorySelect")];
+    catSelects.forEach((sel) => {
       const keepFirst = sel.querySelector("option");
       sel.innerHTML = "";
       sel.appendChild(keepFirst);
@@ -110,29 +127,8 @@
     });
   }
 
-
-  async function loadPaymentMethods() {
-  state.paymentMethods = await api("/expenses/payment-methods");
-
-  const select = $("#paymentMethodSelect");
-
-  if (!select) return;
-
-  select.innerHTML = '<option value="">Select method</option>';
-
-  state.paymentMethods.forEach((method) => {
-    const opt = document.createElement("option");
-
-    opt.value = method.payment_method_name;
-    opt.textContent = method.payment_method_name;
-
-    select.appendChild(opt);
-  });
-}
-
-
-function setupPaymentMethodFields() {
-  const paymentMethodSelect = $("#paymentMethodSelect");
+  function setupPaymentMethodFields() {
+  const paymentMethodSelect = $("select[name='payment_method']");
   const paymentDetails = $("#paymentDetails");
 
   const chequeNumber = $("#chequeNumber");
@@ -164,11 +160,15 @@ function setupPaymentMethodFields() {
     }
   });
 }
-  async function loadSubcategories(categoryId) {
+  function loadSubcategories(categoryId) {
+    // Subcategories come from the same /expenses/options payload —
+    // there is no separate /expenses/categories/{id}/subcategories route.
     const sel = $("#subcategorySelect");
     sel.innerHTML = '<option value="">Select subcategory</option>';
     if (!categoryId) return;
-    const subs = await api(`/expenses/categories/${categoryId}/subcategories`);
+    const subs = (state.subcategoriesAll || []).filter(
+      (s) => String(s.category_id) === String(categoryId)
+    );
     subs.forEach((s) => {
       const opt = document.createElement("option");
       opt.value = s.id;
@@ -201,8 +201,7 @@ function setupPaymentMethodFields() {
 
   async function refreshAll() {
   await Promise.all([
-    loadCategories(),
-    loadPaymentMethods(),
+    loadOptions(),
     loadExpenses(),
     loadDashboard(),
     loadReport()
@@ -440,15 +439,12 @@ function setupPaymentMethodFields() {
     dateInput.value = new Date().toISOString().slice(0, 10);
     openModal("#modalBackdrop");
     // Re-fetch in case an admin added a category/subcategory since page load.
-    Promise.all([
-  loadCategories(),
-  loadPaymentMethods()
-]).catch(() => {
-  toast(
-    "Could not refresh categories or payment methods",
-    "error"
-  );
-});
+    loadOptions().catch(() => {
+      toast(
+        "Could not refresh categories or payment methods",
+        "error"
+      );
+    });
   });
 
   $("#closeModal").addEventListener("click", () => closeModal("#modalBackdrop"));
@@ -473,6 +469,11 @@ function setupPaymentMethodFields() {
 
     try {
       const formData = new FormData(e.target);
+      // Employee is identified server-side via the auth cookie for
+      // *reading* their own data, but /expenses/ still requires created_by
+      // in the body — fill it from the logged-in session, not a free field.
+      const session = window.LedgerSession ? window.LedgerSession.getSession() : null;
+      formData.set("created_by", session ? session.employee_id : state.currentUser);
       // subcategory_id may be empty — strip it so backend Optional[int] works
       if (!formData.get("subcategory_id")) formData.delete("subcategory_id");
       // receipt input with no file: strip so backend treats it as absent
@@ -494,6 +495,10 @@ function setupPaymentMethodFields() {
   /* ----------------------------------------------------------
      Init
   ---------------------------------------------------------- */
+  (() => {
+    const session = window.LedgerSession ? window.LedgerSession.getSession() : null;
+    if (session) state.currentUser = session.employee_id;
+  })();
   setupPaymentMethodFields();
   refreshAll().catch((err) => {
     console.error(err);

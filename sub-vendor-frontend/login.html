@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — Ledger Vendor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/login.css">
+</head>
+<body class="login-body">
+
+<div class="login-shell">
+
+  <!-- Left brand panel -->
+  <div class="login-brand-panel">
+    <div class="login-brand">
+      <span class="brand-mark">₹</span>
+      <span class="brand-name">Ledger</span>
+      <span class="brand-tag">Vendor</span>
+    </div>
+    <div class="login-brand-copy">
+      <h1>Sub-vendor workspace</h1>
+      <p>Log expenses, track approvals, and keep an eye on your wallet — all in one place.</p>
+    </div>
+    <ul class="login-brand-points">
+      <li><span class="dot dot-approved"></span> Submit and track expenses</li>
+      <li><span class="dot dot-pending"></span> Request new categories</li>
+      <li><span class="dot dot-paid"></span> View payouts &amp; wallet balance</li>
+    </ul>
+  </div>
+
+  <!-- Right login panel -->
+  <div class="login-form-panel">
+    <div class="login-card">
+
+      <div class="login-card-head">
+        <h2>Sign in</h2>
+        <p class="muted">Enter your credentials to access your workspace.</p>
+      </div>
+
+      <div id="loginAlert" class="login-alert" hidden></div>
+
+      <form id="loginForm" class="login-form" novalidate>
+        <label class="field field--wide">
+          <span>Username or email</span>
+          <input type="text" name="username" id="loginUsername" autocomplete="username" required placeholder="you@company.com">
+        </label>
+
+        <label class="field field--wide">
+          <span>Password</span>
+          <div class="password-field">
+            <input type="password" name="password" id="loginPassword" autocomplete="current-password" required placeholder="••••••••">
+            <button type="button" class="password-toggle" id="togglePassword" aria-label="Show password">&#128065;</button>
+          </div>
+        </label>
+
+        <label class="login-remember">
+          <input type="checkbox" id="rememberMe" checked>
+          <span>Keep me signed in on this device</span>
+        </label>
+
+        <button type="submit" class="btn btn-primary login-submit" id="loginSubmit">
+          <span id="loginSubmitText">Sign in</span>
+        </button>
+      </form>
+
+      <p class="login-foot muted">Trouble signing in? Contact your admin to reset access.</p>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/auth.js"></script>
+</body>
+</html>

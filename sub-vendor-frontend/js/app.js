@@ -27,7 +27,7 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  const vendorId = () => Number(($("#vendorIdInput") || {}).value || 1);
+  const vendorId = () => Number(($("#vendorIdInput") || {}).value || window.Auth?.getVendorId() || 1);
 
   const fmtMoney = (value) => {
     const n = Number(value || 0);
@@ -64,7 +64,13 @@
       opts.body = JSON.stringify(opts.json);
       delete opts.json;
     }
+    opts.headers = { ...(window.Auth ? window.Auth.authHeader() : {}), ...(opts.headers || {}) };
     const res = await fetch(API + path, opts);
+    if (res.status === 401) {
+      // Session expired or invalid — send the vendor back to login.
+      window.Auth?.logout();
+      throw new Error("Session expired. Redirecting to sign in…");
+    }
     if (!res.ok) {
       let detail = res.statusText;
       try {
@@ -720,6 +726,22 @@
   /* ----------------------------------------------------------
      Init
   ---------------------------------------------------------- */
+  // Prefill vendor identity from the logged-in session, if available.
+  if (window.Auth?.isLoggedIn()) {
+    const vid = window.Auth.getVendorId();
+    const name = window.Auth.getName();
+    if (vid) {
+      const vendorInput = $("#vendorIdInput");
+      const createdByInput = $("#createdByInput");
+      if (vendorInput) vendorInput.value = vid;
+      if (createdByInput) createdByInput.value = vid;
+    }
+    const userNameEl = $(".user-name");
+    if (userNameEl && name) userNameEl.textContent = name;
+  }
+
+  $("#logoutBtn")?.addEventListener("click", () => window.Auth?.logout());
+
   setupPaymentMethodFields();
   refreshAll().catch((err) => {
     console.error(err);

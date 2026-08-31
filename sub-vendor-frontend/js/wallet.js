@@ -36,7 +36,14 @@
   }
 
   async function api(path, options = {}) {
+    options.headers = { ...(window.Auth ? window.Auth.authHeader() : {}), ...(options.headers || {}) };
     const res = await fetch(API + path, options);
+    if (res.status === 401) {
+      window.Auth?.logout();
+      const err = new Error("Session expired. Redirecting to sign in…");
+      err.status = 401;
+      throw err;
+    }
     if (!res.ok) {
       let detail = res.statusText;
       try {

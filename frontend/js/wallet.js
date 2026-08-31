@@ -40,7 +40,8 @@
   }
 
   async function api(path, options = {}) {
-    const res = await fetch(API + path, options);
+    const opts = { ...options, credentials: "same-origin" };
+    const res = await fetch(API + path, opts);
     if (!res.ok) {
       let detail = res.statusText;
       try {

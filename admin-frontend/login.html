@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — Ledger Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/auth.css">
+</head>
+<body class="auth-body">
+
+<div class="auth-shell">
+
+  <!-- Brand / hero side -->
+  <div class="auth-hero">
+    <div class="auth-hero-brand">
+      <span class="brand-mark">₹</span>
+      <span class="brand-name">Ledger</span>
+      <span class="brand-tag">Admin</span>
+    </div>
+
+    <div class="auth-hero-body">
+      <h1>Run the whole expense ledger from one place.</h1>
+      <p>Approve, reject, and pay out employee &amp; sub-vendor expenses, manage categories and payment methods, and keep a full audit trail — all in one dashboard.</p>
+
+      <ul class="auth-hero-points">
+        <li><span class="dot">&#10003;</span> Approve or reject expenses with one click</li>
+        <li><span class="dot">&#10003;</span> Manage sub-vendors, employees &amp; wallets</li>
+        <li><span class="dot">&#10003;</span> Category &amp; payment-method requests, reports, PDFs</li>
+      </ul>
+    </div>
+
+    <div class="auth-hero-foot">Ledger &middot; Expense Management</div>
+  </div>
+
+  <!-- Form side -->
+  <div class="auth-form-side">
+    <div class="auth-card">
+      <div class="auth-card-head">
+        <h2>Sign in</h2>
+        <p>Enter your admin credentials to continue.</p>
+      </div>
+
+      <div class="auth-alert" id="loginAlert" hidden></div>
+
+      <form id="loginForm" class="auth-form" novalidate>
+        <label class="field">
+          <span>Email address</span>
+          <input type="email" name="email_id" autocomplete="username" placeholder="you@company.com" required>
+        </label>
+
+        <label class="field">
+          <span>Password</span>
+          <div class="auth-password-wrap">
+            <input type="password" id="loginPassword" name="password" autocomplete="current-password" placeholder="Enter your password" required>
+            <button type="button" class="auth-toggle-pw" data-target="loginPassword">Show</button>
+          </div>
+        </label>
+
+        <button type="submit" class="btn btn-primary auth-submit" id="loginSubmit">Sign in</button>
+      </form>
+
+      <p class="auth-switch">Don't have an admin account? <a href="register.html">Create one</a></p>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/auth.js"></script>
+</body>
+</html>

@@ -18,8 +18,11 @@ from app.services.auth_service import (
     SECRET_KEY,
     ALGORITHM
 )
+import hashlib
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-
+from datetime import datetime,timedelta,timezone
+from app.services.auth_service import generate_password_reset_token
 from app.database import SessionLocal
 from app import crud, schemas, models
 from app.services.auth_service import create_access_token
@@ -34,6 +37,8 @@ router = APIRouter(
     tags=["Employee Management"]
 )
 
+password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def get_db():
     db = SessionLocal()
@@ -42,37 +47,7 @@ def get_db():
     finally:
         db.close()
 
-# async def get_current_employee(
-#         request: Request,
-#         db: Session = Depends(get_db)
-# ):
-#     token =  request.cookies.get("employee_token")
-#     if not token:
-#         raise HTTPException(
-#             status_code=401,
-#             detail="Employee authentication required"
-#         )
-#     employee_id = get_employee_id_from_token(token)
-#     employee = (
-#         db.query(models.Employee)
-#         .filter(
-#             models.Employee.id == employee_id
-#         )
-#         .first()
-#     )
 
-#     if employee is None:
-#         raise HTTPException(
-#             status_code=401,
-#             detail="Employee not found"
-#         )
-#         if not employee.is_active:
-#          raise HTTPException(
-#             status_code=403,
-#             detail="Employee account is deactivated"
-#         )
-
-#     return employee
 
 
 async def get_current_employee(
@@ -166,81 +141,7 @@ async def get_current_employee(
 
     return employee
 
-# @router.post("/login")
-# async def employee_login(
-#     request: schemas.EmployeeLogin,
-#     response: Response,
-#     db: Session = Depends(get_db)
-# ):
-    
 
-#     employee = (
-#         db.query(models.Employee)
-#         .filter(
-#             models.Employee.email == request.email
-#         )
-#         .first()
-#     )
-
-#     if employee is None:
-#         raise HTTPException(
-#             status_code=401,
-#             detail="Invalid email or password"
-#         )
-
-
-    
-
-#     if not employee.is_active:
-#         raise HTTPException(
-#             status_code=403,
-#             detail=(
-#                 "You are not allowed to login. "
-#                 "Your account has been deactivated "
-#                 "by the sub-vendor."
-#             )
-#         )
-
-
-    
-
-#     if employee.password_hash != request.password:
-#         raise HTTPException(
-#             status_code=401,
-#             detail="Invalid email or password"
-#         )
-
-
-    
-
-#     access_token = create_employee_access_token(
-#         employee.id
-#     )
-
-
-    
-
-#     response.set_cookie(
-#         key="employee_token",
-#         value=access_token,
-#         httponly=True,
-#         secure=False,
-#         samesite="lax",
-#         max_age=60 * 60
-#     )
-
-
-    
-
-#     return {
-#         "success": True,
-#         "message": "Employee login successful",
-#         "employee_id": employee.id,
-#         "sub_vendor_id": employee.sub_vendor_id,
-#         "name": employee.name,
-#         "email": employee.email,
-#         "is_active": employee.is_active
-#     }
 
 @router.post("/login")
 def employee_login(
@@ -317,6 +218,139 @@ def employee_login(
         "email": employee.email,
         "is_active": employee.is_active
     }
+
+@router.post("/forgot Password")
+def employee_forgot_password(
+    request:schemas.EmployeeForgeotPassword,
+    db:Session = Depends(get_db)
+):
+    employee = (
+        db.query(models.Employee).filter(
+            models.Employee.email == request.email
+        ).first()
+    )
+
+    if employee is None:
+        return{
+            "success": True,
+            "message": "If the email is exit , The password reset link has been sent to the registered email"
+        }
+    token,token_hash = generate_password_reset_token()
+    expires_at = datetime.now(timezone.utc) + timedelta(
+        minutes=15
+    )
+
+    reset_token = models.PasswordResetToken(
+        user_id = employee.id,
+        user_type = "employee",
+        token_hash = token_hash,
+        expires_at = expires_at
+
+    )
+
+    db.add(reset_token)
+    db.commit()
+
+
+    # for the trsting perpose 
+
+    return{
+        "success": True,
+        "message": "Password reset token generated",
+        "reset_token": token
+    }
+    
+@router.post("/reset Password")
+def employee_reset_password(
+    request:schemas.EmployeeResetPassword,
+    db:Session = Depends(get_db)
+):
+    if request.new_password != request.confirm_password:
+        raise HTTPException(
+            status_code= 400,
+            detail="Password do not match"
+        )
+
+    token_hash  = hashlib.sha256(
+        request.token.encode()
+    ).hexdigest()
+
+    reset_token = (
+        db.query(models.PasswordResetToken).filter(
+            models.PasswordResetToken.token_hash == token_hash,
+            models.PasswordResetToken.user_type == "employee",
+            models.PasswordResetToken.used_at.is_(None)
+        ).first()
+    )
+
+    if reset_token is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or already used reset token"
+        )
+    
+    if reset_token.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=400,
+            detail="Reset token has expired"
+        )
+
+    employee = (
+        db.query(models.Employee)
+        .filter(
+            models.Employee.id == reset_token.user_id
+        )
+        .first()
+    )
+
+    if employee is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Employee not found"
+        )
+
+
+    employee.password_hash = password_context.hash(
+        request.new_password
+    )
+
+    reset_token.used_at = datetime.now(timezone.utc)
+
+    db.query(models.AuthSession).filter(
+        models.AuthSession.user_id == employee.id,
+        models.AuthSession.user_type == "employee",
+        models.AuthSession.revoked_at.is_(None)
+    ).update(
+        {
+            models.AuthSession.revoked_at:
+                datetime.now(timezone.utc)
+        },
+        synchronize_session=False
+    )
+
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Password reset successfully"
+    }
+
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
 @router.get(
     "/options",
     response_model=schemas.ExpenseOptionsResponse

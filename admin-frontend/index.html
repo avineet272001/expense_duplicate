@@ -76,9 +76,18 @@
         <span>Vendor workspace</span>
       </a>
       <div class="user-chip">
-        <div class="user-avatar">A</div>
+        <div class="user-avatar" id="userAvatar">A</div>
         <div style="flex:1; min-width:0;">
-          <div class="user-name">Admin ID</div>
+          <div class="user-name" id="userName">Admin</div>
+          <div class="user-sub" id="userEmail" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">&nbsp;</div>
+        </div>
+        <button class="icon-btn" id="logoutBtn" title="Sign out" aria-label="Sign out">&#9211;</button>
+      </div>
+      <!-- Used as approved_by / paid_by on approve, reject & pay actions.
+           Pre-filled from your logged-in admin id, editable if needed. -->
+      <div class="user-chip" style="padding-top:0;">
+        <div style="flex:1; min-width:0;">
+          <div class="user-sub">Approver ID</div>
           <input id="adminIdInput" class="admin-id-input" type="number" min="1" value="1" style="width:100%; margin-top:4px; padding:5px 7px; border-radius:6px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:#EAF0F6; font-family:var(--font-mono); font-size:12px;">
         </div>
       </div>
@@ -789,6 +798,7 @@
 
 <div class="toast-stack" id="toastStack"></div>
 
+<script src="js/session.js"></script>
 <script src="js/app.js"></script>
 <script src="js/vendor-requests.js"></script>
 <script src="js/wallet.js"></script>

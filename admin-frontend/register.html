@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create admin account — Ledger Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/auth.css">
+</head>
+<body class="auth-body">
+
+<div class="auth-shell">
+
+  <!-- Brand / hero side -->
+  <div class="auth-hero">
+    <div class="auth-hero-brand">
+      <span class="brand-mark">₹</span>
+      <span class="brand-name">Ledger</span>
+      <span class="brand-tag">Admin</span>
+    </div>
+
+    <div class="auth-hero-body">
+      <h1>Create your admin account.</h1>
+      <p>Admin accounts have full visibility across every sub-vendor and employee: approvals, payouts, wallets, categories, and reports.</p>
+
+      <ul class="auth-hero-points">
+        <li><span class="dot">&#10003;</span> Full access to every module in the dashboard</li>
+        <li><span class="dot">&#10003;</span> Add and manage sub-vendors</li>
+        <li><span class="dot">&#10003;</span> Approve category &amp; payment method requests</li>
+      </ul>
+    </div>
+
+    <div class="auth-hero-foot">Ledger &middot; Expense Management</div>
+  </div>
+
+  <!-- Form side -->
+  <div class="auth-form-side">
+    <div class="auth-card">
+      <div class="auth-card-head">
+        <h2>Create admin account</h2>
+        <p>Fill in your details to get started.</p>
+      </div>
+
+      <div class="auth-alert" id="registerAlert" hidden></div>
+
+      <form id="registerForm" class="auth-form" novalidate>
+        <label class="field">
+          <span>Full name</span>
+          <input type="text" name="Name" autocomplete="name" placeholder="Jane Doe" required>
+        </label>
+
+        <label class="field">
+          <span>Email address</span>
+          <input type="email" name="email_id" autocomplete="username" placeholder="you@company.com" required>
+        </label>
+
+        <label class="field">
+          <span>Phone number</span>
+          <input type="tel" name="phone_number" autocomplete="tel" placeholder="+91 98765 43210" required>
+        </label>
+
+        <div class="auth-form-row">
+          <label class="field">
+            <span>Password</span>
+            <div class="auth-password-wrap">
+              <input type="password" id="registerPassword" name="password" autocomplete="new-password" placeholder="Min. 6 characters" required minlength="6">
+              <button type="button" class="auth-toggle-pw" data-target="registerPassword">Show</button>
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Confirm password</span>
+            <div class="auth-password-wrap">
+              <input type="password" id="registerConfirmPassword" name="confirm_password" autocomplete="new-password" placeholder="Re-enter password" required minlength="6">
+              <button type="button" class="auth-toggle-pw" data-target="registerConfirmPassword">Show</button>
+            </div>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary auth-submit" id="registerSubmit">Create account</button>
+      </form>
+
+      <p class="auth-switch">Already have an account? <a href="login.html">Sign in</a></p>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/auth.js"></script>
+</body>
+</html>

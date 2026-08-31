@@ -75,13 +75,18 @@
   }
 
   async function api(path, options = {}) {
-    const opts = { ...options };
+    const opts = { ...options, credentials: "same-origin" };
     if (opts.json !== undefined) {
       opts.headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
       opts.body = JSON.stringify(opts.json);
       delete opts.json;
     }
     const res = await fetch(API + path, opts);
+    if (res.status === 401 && window.LedgerSession) {
+      // Session cookie missing / expired / revoked server-side — bounce to login.
+      window.LedgerSession.goToLogin();
+      return new Promise(() => {}); // halt this call chain, we're navigating away
+    }
     if (!res.ok) {
       let detail = res.statusText;
       try {

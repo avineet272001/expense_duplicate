@@ -4,6 +4,7 @@ from sqlalchemy import (
     String,
     Text,
     Date,
+    DateTime,
     Numeric,
     TIMESTAMP,
     ForeignKey,
@@ -19,6 +20,7 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
+from datetime import datetime, timezone
 
 # Expense Category
 
@@ -454,7 +456,7 @@ class SubCategoryRequest(Base):
     )
 
 
-# SUB VENDOR 
+# SUB VENDOR
 
 class SubVendor(Base):
     __tablename__ = "sub_vendors"
@@ -916,6 +918,29 @@ class AuthSession(Base):
         server_default=func.now(),
         nullable=False
     )
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer,primary_key=True,index=True)
+
+    user_id = Column(Integer,nullable=False)
+    user_type = Column(String,nullable=False)
+    used_at = Column(
+    DateTime(timezone=True),
+    nullable=True
+    )
+    token_hash = Column(String, nullable=False,unique=True)
+    expires_at = Column(
+        TIMESTAMP(timezone=True),
+        nullable=True
+    )
+    created_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda:datetime.now(timezone.utc)
+    )
+
 
 
 
