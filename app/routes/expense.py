@@ -335,21 +335,6 @@ def employee_reset_password(
         "message": "Password reset successfully"
     }
 
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
 
 @router.get(
     "/options",
