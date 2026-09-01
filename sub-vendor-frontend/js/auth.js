@@ -13,7 +13,7 @@ const AUTH_CONFIG = {
   API_BASE: "",
 
   // Endpoint your backend exposes for login.
-  LOGIN_ENDPOINT: "/auth/login",
+  LOGIN_ENDPOINT: "/sub-vendor/login",
 
   // Endpoint for logout. Set to null if your backend has none
   // (client-side token removal only).
@@ -25,7 +25,7 @@ const AUTH_CONFIG = {
   // "username" below to "email".
   buildLoginPayload(username, password) {
     return {
-      username: username,   // <-- change key name if backend expects "email" / "vendor_id" etc.
+      email: username,
       password: password,
     };
   },
@@ -128,10 +128,9 @@ const Auth = (() => {
 
     const data = await res.json();
     const parsed = AUTH_CONFIG.parseLoginResponse(data);
-    if (!parsed.token) {
-      throw new Error("Login response did not include a token — check parseLoginResponse() in auth.js");
-    }
-    save(parsed, remember);
+    // The FastAPI endpoint authenticates with an httpOnly cookie, so the
+    // browser stores the session cookie instead of receiving a JWT in JSON.
+    save({ ...parsed, token: parsed.token || "cookie-session" }, remember);
     return parsed;
   }
 

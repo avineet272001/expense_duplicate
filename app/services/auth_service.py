@@ -157,9 +157,7 @@ def create_admin_access_token(
 
     return token, expire
 def get_admin_id_from_token(
-        token:str,
-        db:Session
-
+        token: str
         ):
         credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
