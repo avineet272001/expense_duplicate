@@ -39,20 +39,8 @@ def get_db():
     finally:
         db.close()
 
-# def get_current_admin(
-#     request: Request,
-#     db: Session = Depends(get_db)
 
-#     ):
-#     token = request.cookies.get("admin_token")
 
-#     if not token:
-#         raise HTTPException(
-#             status_code=401,
-#             detail="Admin authentication required"
-#         )
-
-#     return get_admin_id_from_token(token,db)
 
 
 def get_current_admin(
@@ -152,11 +140,6 @@ def admin_login(
     )
 
 
-    # access_token = create_admin_access_token(
-    #     admin.id,
-    #     admin.token_version
-    # )
-
     jti = str(uuid.uuid4())
 
     access_token, expires_at = create_admin_access_token(
@@ -230,13 +213,7 @@ def reset_password(
         )
 
 
-
-
-
-
-
 # CATEGORY & SUBCATEGORY MANAGEMENT
-
 
 @router.post("/categories")
 def create_category_or_subcategory(
@@ -1369,34 +1346,7 @@ def admin_wallet_transaction(
         )
 
 
-# @router.post("/logout")
-# def admin_logout(
-#     request:Request,
-#     response:Response,
-#     db:Session = Depends(get_db),
-#     current_admin_id:int = Depends(get_current_admin)
-# ):
-#     admin = (
-#         db.query(models.Admin)
-#         .filter(
-#             models.Admin.id == current_admin_id
-#         )
-#         .first()
-#     )    
-#     if admin is None:
-#         raise HTTPException(
-#             status_code=404,
-#             detail="Admin not Found "
-#         )
-#     admin.token_version += 1
-#     db.commit()
-#     response.delete_cookie(
-#         key = "admin_token"
-#     )
-#     return {
-#         "success":True,
-#         "massage": "Admin logout Sucessfully"
-#     }
+
 
 @router.post("/logout")
 def admin_logout(

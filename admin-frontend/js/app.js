@@ -162,23 +162,23 @@
   }
 
   async function loadPending() {
-    state.pending = await api("/admin/expenses/pending");
+    state.pending = await api("/admin/expenses?status=Pending");
     renderPendingTable();
     renderRecentAttention();
   }
 
   async function loadApproved() {
-    state.approved = await api("/admin/expenses/approved");
+    state.approved = await api("/admin/expenses?status=Approved");
     renderApprovedTable();
   }
 
   async function loadRejected() {
-    state.rejected = await api("/admin/expenses/rejected");
+    state.rejected = await api("/admin/expenses?status=Rejected");
     renderRejectedTable();
   }
 
   async function loadPaid() {
-    state.paid = await api("/admin/expenses/paid");
+    state.paid = await api("/admin/expenses?status=Paid");
     renderPaidTable();
   }
 
@@ -189,7 +189,7 @@
   }
 
   async function loadPaymentMethodReport() {
-    state.paymentMethodReport = await api("/admin/reports/payment-methods");
+    state.paymentMethodReport = await api("/admin/reports/payments?report_type=method");
     const filterSelect = $("#paymentMethodFilterSelect");
     renderPaymentMethodDetail(filterSelect ? filterSelect.value : "");
   }
@@ -464,11 +464,11 @@
       const start = $("#periodReportStart").value;
       const end = $("#periodReportEnd").value;
       if (!start || !end) throw new Error("Choose a start and end date");
-      return { custom: true, qs: `start_date=${start}&end_date=${end}` };
+      return { custom: true, qs: `report_type=custom&start_date=${start}&end_date=${end}` };
     }
     const date = $("#periodReportDate").value;
-    const qs = `period=${type}` + (date ? `&report_date=${date}` : "");
-    return { custom: false, qs };
+    const qs = `report_type=period&period=${type}` + (date ? `&report_date=${date}` : "");
+    return { custom: false, qs, period: type, date };
   }
 
   $("#periodReportForm").addEventListener("submit", async (e) => {
@@ -476,9 +476,8 @@
     const wrap = $("#periodReportWrap");
     wrap.innerHTML = '<p class="empty-mini">Loading&hellip;</p>';
     try {
-      const { custom, qs } = periodReportQuery();
-      const path = custom ? `/admin/payment-report/custom?${qs}` : `/admin/payment-report?${qs}`;
-      const rows = await api(path);
+      const { qs } = periodReportQuery();
+      const rows = await api(`/admin/reports/payments?${qs}`);
       renderPeriodReportTable(rows);
     } catch (err) {
       wrap.innerHTML = `<p class="empty-mini">Could not load report: ${escapeHtml(err.message || "unknown error")}</p>`;
@@ -487,9 +486,10 @@
 
   $("#downloadPeriodReportPdf").addEventListener("click", () => {
     try {
-      const { custom, qs } = periodReportQuery();
+      const { custom, period, date } = periodReportQuery();
       if (custom) return; // button is disabled in this state, but guard anyway
-      window.open(`/admin/payment-report/pdf?${qs}`, "_blank");
+      const qs = `period=${period}` + (date ? `&report_date=${date}` : "");
+      window.open(`/admin/reports/payments/pdf?${qs}`, "_blank");
     } catch (err) {
       toast(err.message || "Could not download PDF", "error");
     }
@@ -675,7 +675,10 @@
   });
 
   async function approveExpense(id) {
-    await api(`/admin/expenses/${id}/approve`, { method: "PUT", json: { approved_by: adminId() } });
+    await api(`/admin/expenses/${id}/status`, {
+      method: "PUT",
+      json: { status: "Approved", approved_by: adminId() },
+    });
     toast("Expense approved", "success");
     await Promise.all([loadPending(), loadApproved(), loadDashboard()]);
   }
@@ -737,6 +740,7 @@
     const formData = new FormData(e.target);
 
     const payload = {
+      status: "Paid",
       paid_by: adminId(),
       payment_method_id: Number(formData.get("payment_method_id")),
       cheque_number: formData.get("cheque_number") || null,
@@ -749,7 +753,7 @@
     if (paymentDate) payload.payment_date = new Date(paymentDate).toISOString();
 
     try {
-      await api(`/admin/expenses/${paidTargetId}/paid`, { method: "PUT", json: payload });
+      await api(`/admin/expenses/${paidTargetId}/status`, { method: "PUT", json: payload });
       toast("Marked as paid", "success");
       closeModal("#paidBackdrop");
       await Promise.all([loadApproved(), loadPaid(), loadDashboard(), loadPaymentMethodReport()]);
@@ -839,9 +843,9 @@
     const formData = new FormData(e.target);
 
     try {
-      await api(`/admin/expenses/${rejectTargetId}/reject`, {
+      await api(`/admin/expenses/${rejectTargetId}/status`, {
         method: "PUT",
-        json: { approved_by: adminId(), remarks: formData.get("remarks") || "" },
+        json: { status: "Rejected", approved_by: adminId(), remarks: formData.get("remarks") || "" },
       });
       toast("Expense rejected", "success");
       closeModal("#rejectBackdrop");
@@ -920,7 +924,7 @@
     if (!name) return;
 
     try {
-      await api("/admin/categories", { method: "POST", json: { category_name: name } });
+      await api("/admin/categories", { method: "POST", json: { type: "category", category_name: name } });
       toast("Category added", "success");
       e.target.reset();
       await loadCategories();
@@ -937,9 +941,9 @@
     if (!categoryId || !name) return;
 
     try {
-      await api("/admin/subcategories", {
+      await api("/admin/categories", {
         method: "POST",
-        json: { category_id: categoryId, subcategory_name: name },
+        json: { type: "subcategory", category_id: categoryId, subcategory_name: name },
       });
       toast("Subcategory added", "success");
       e.target.reset();
