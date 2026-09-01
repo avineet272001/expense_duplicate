@@ -23,9 +23,8 @@ def send_push_notification(
     return response
 
 
-# ============================================================
-# SEND NOTIFICATION TO USER
-# ============================================================
+
+
 
 def send_notification_to_user(
     db,
@@ -77,14 +76,7 @@ def send_notification_to_user(
         }
 
 
-# ============================================================
-# SAFE NOTIFY
-#
-# Wraps send_notification_to_user so that a missing/invalid
-# Firebase token or a Firebase error never breaks the calling
-# API request (approve/reject/create expense, etc. must still
-# succeed even if the push notification fails to send).
-# ============================================================
+
 
 def notify_safe(
     db,

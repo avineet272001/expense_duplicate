@@ -58,7 +58,7 @@ class ExpenseCreate(BaseModel):
     payment_method: str
 
     created_by: int
-    upi_paid_by: Optional[int] = None
+    upi_paid_by: Optional[str] = None
 
     remarks: Optional[str] = None
 
@@ -126,7 +126,7 @@ class ExpenseResponse(BaseModel):
     remarks: Optional[str] = None
 
     created_at: datetime
-    upi_paid_by: Optional[int] = None
+    upi_paid_by: Optional[str] = None
 
     updated_at: datetime
 
@@ -252,7 +252,7 @@ class ExpensePaymentResponse(BaseModel):
     transaction_reference: Optional[str] = None
 
     bank_name: Optional[str] = None
-    upi_paid_by: Optional[int] = None
+    upi_paid_by: Optional[str] = None
 
     payment_date: Optional[datetime] = None
 

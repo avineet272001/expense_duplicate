@@ -44,9 +44,7 @@ def daily_payment_report_job():
 
     try:
 
-        # --------------------------------------------------
-        # REPORT DATE
-        # --------------------------------------------------
+
 
         report_date = date.today()
 
@@ -58,9 +56,7 @@ def daily_payment_report_job():
             f"for {start_date}"
         )
 
-        # --------------------------------------------------
-        # GET REPORT DATA FROM DATABASE
-        # --------------------------------------------------
+
 
         report_rows = get_payment_period_report(
             db=db,
@@ -73,9 +69,7 @@ def daily_payment_report_job():
             f"{len(report_rows)}"
         )
 
-        # --------------------------------------------------
-        # PRINT REPORT DATA
-        # --------------------------------------------------
+
 
         for row in report_rows:
 
@@ -86,9 +80,7 @@ def daily_payment_report_job():
                 f"Amount: {row['total_amount']}"
             )
 
-        # --------------------------------------------------
-        # GENERATE PDF
-        # --------------------------------------------------
+
 
         pdf_buffer = generate_payment_report_pdf(
             report_rows=report_rows,
@@ -97,9 +89,7 @@ def daily_payment_report_job():
             end_date=end_date
         )
 
-        # --------------------------------------------------
-        # CONVERT PDF TO BYTES
-        # --------------------------------------------------
+
 
         pdf_bytes = pdf_buffer.getvalue()
 
@@ -111,18 +101,13 @@ def daily_payment_report_job():
             f"PDF size: {len(pdf_bytes)} bytes"
         )
 
-        # --------------------------------------------------
-        # PDF FILE NAME
-        # --------------------------------------------------
 
         filename = (
             f"daily_payment_report_"
             f"{start_date}.pdf"
         )
 
-        # --------------------------------------------------
-        # SEND PDF TO ADMIN
-        # --------------------------------------------------
+   
 
         send_email_with_attachment(
 
@@ -223,9 +208,7 @@ def monthly_payment_report_job():
 
     try:
 
-        # ==================================================
-        # CURRENT DATE
-        # ==================================================
+
 
         today = date.today()
 
@@ -233,26 +216,19 @@ def monthly_payment_report_job():
             f"Current date: {today}"
         )
 
-        # ==================================================
-        # FIRST DAY OF CURRENT MONTH
-        # ==================================================
+
 
         first_day_current_month = today.replace(
             day=1
         )
 
-        # ==================================================
-        # LAST DAY OF PREVIOUS MONTH
-        # ==================================================
+
 
         end_date = (
             first_day_current_month
             - timedelta(days=1)
         )
 
-        # ==================================================
-        # FIRST DAY OF PREVIOUS MONTH
-        # ==================================================
 
         start_date = end_date.replace(
             day=1
@@ -263,9 +239,7 @@ def monthly_payment_report_job():
             f"{start_date} → {end_date}"
         )
 
-        # ==================================================
-        # GET REPORT DATA
-        # ==================================================
+
 
         report_rows = get_payment_period_report(
             db=db,
@@ -278,9 +252,6 @@ def monthly_payment_report_job():
             f"{len(report_rows)}"
         )
 
-        # ==================================================
-        # PRINT REPORT DATA
-        # ==================================================
 
         for row in report_rows:
 
@@ -291,9 +262,7 @@ def monthly_payment_report_job():
                 f"Amount: {row['total_amount']}"
             )
 
-        # ==================================================
-        # GENERATE PDF
-        # ==================================================
+
 
         pdf_buffer = generate_payment_report_pdf(
             report_rows=report_rows,
@@ -312,18 +281,12 @@ def monthly_payment_report_job():
             f"PDF size: {len(pdf_bytes)} bytes"
         )
 
-        # ==================================================
-        # FILE NAME
-        # ==================================================
-
         filename = (
             f"monthly_payment_report_"
             f"{start_date.strftime('%Y_%m')}.pdf"
         )
 
-        # ==================================================
-        # SEND EMAIL TO ADMIN
-        # ==================================================
+
 
         send_email_with_attachment(
 
@@ -460,9 +423,7 @@ def monthly_category_subcategory_report_job():
 
     try:
 
-        # ----------------------------------------------------
-        # PREVIOUS MONTH
-        # ----------------------------------------------------
+
 
         start_date, end_date = (
             get_previous_month_range()
@@ -473,9 +434,6 @@ def monthly_category_subcategory_report_job():
             f"{start_date} to {end_date}"
         )
 
-        # ----------------------------------------------------
-        # GET DATA
-        # ----------------------------------------------------
 
         report_rows = (
             get_category_subcategory_period_report(
@@ -489,9 +447,7 @@ def monthly_category_subcategory_report_job():
             f"Report rows: {len(report_rows)}"
         )
 
-        # ----------------------------------------------------
-        # CREATE PDF
-        # ----------------------------------------------------
+
 
         pdf_buffer = (
             generate_category_subcategory_report_pdf(
@@ -503,9 +459,7 @@ def monthly_category_subcategory_report_job():
 
         pdf_bytes = pdf_buffer.getvalue()
 
-        # ----------------------------------------------------
-        # PDF NAME
-        # ----------------------------------------------------
+
 
         month_name = start_date.strftime("%B_%Y")
 
@@ -513,10 +467,6 @@ def monthly_category_subcategory_report_job():
             f"category_subcategory_report_"
             f"{month_name}.pdf"
         )
-
-        # ----------------------------------------------------
-        # EMAIL
-        # ----------------------------------------------------
 
         send_email_with_attachment(
 
@@ -601,8 +551,7 @@ def monthly_category_subcategory_report_job():
 
 
 
-##########
-# For the testing Perpose 
+
 
 def test_august_category_subcategory_report():
 

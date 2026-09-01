@@ -37,9 +37,7 @@ def send_activity_email(
         MIMEText(body, "plain")
     )
 
-    # --------------------------------------------------
-    # PDF ATTACHMENT
-    # --------------------------------------------------
+
 
     if attachment_path:
 
@@ -67,9 +65,7 @@ def send_activity_email(
             pdf_attachment
         )
 
-    # --------------------------------------------------
-    # SMTP
-    # --------------------------------------------------
+
 
     server = smtplib.SMTP(
         SMTP_HOST,

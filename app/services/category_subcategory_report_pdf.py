@@ -38,9 +38,6 @@ def generate_category_subcategory_report_pdf(
 
     story = []
 
-    # ========================================================
-    # TITLE
-    # ========================================================
 
     story.append(
         Paragraph(
@@ -67,9 +64,7 @@ def generate_category_subcategory_report_pdf(
         Spacer(1, 15)
     )
 
-    # ========================================================
-    # TABLE HEADER
-    # ========================================================
+
 
     table_data = [
         [
@@ -80,16 +75,12 @@ def generate_category_subcategory_report_pdf(
         ]
     ]
 
-    # ========================================================
-    # TOTAL VARIABLES
-    # ========================================================
+
 
     total_count = 0
     total_amount = Decimal("0")
 
-    # ========================================================
-    # CATEGORY/SUBCATEGORY ROWS
-    # ========================================================
+
 
     for row in report_rows:
 
@@ -101,16 +92,10 @@ def generate_category_subcategory_report_pdf(
             str(row["total_amount"])
         )
 
-        # -----------------------------------------------
-        # Add to overall totals
-        # -----------------------------------------------
 
         total_count += count
         total_amount += amount
 
-        # -----------------------------------------------
-        # Add category/subcategory row
-        # -----------------------------------------------
 
         table_data.append(
             [
@@ -121,12 +106,6 @@ def generate_category_subcategory_report_pdf(
             ]
         )
 
-    # ========================================================
-    # TOTAL ROW
-    #
-    # IMPORTANT:
-    # This is OUTSIDE the for loop.
-    # ========================================================
 
     table_data.append(
         [
@@ -137,9 +116,7 @@ def generate_category_subcategory_report_pdf(
         ]
     )
 
-    # ========================================================
-    # TABLE
-    # ========================================================
+
 
     table = Table(
         table_data,
@@ -151,17 +128,13 @@ def generate_category_subcategory_report_pdf(
         ]
     )
 
-    # ========================================================
-    # TABLE STYLE
-    # ========================================================
+
 
     table.setStyle(
         TableStyle(
             [
 
-                # --------------------------------------------
-                # Header
-                # --------------------------------------------
+
 
                 (
                     "BACKGROUND",
@@ -184,9 +157,7 @@ def generate_category_subcategory_report_pdf(
                     "Helvetica-Bold",
                 ),
 
-                # --------------------------------------------
-                # Alignment
-                # --------------------------------------------
+
 
                 (
                     "ALIGN",
@@ -195,9 +166,7 @@ def generate_category_subcategory_report_pdf(
                     "RIGHT",
                 ),
 
-                # --------------------------------------------
-                # Borders
-                # --------------------------------------------
+         
 
                 (
                     "GRID",
@@ -207,9 +176,7 @@ def generate_category_subcategory_report_pdf(
                     colors.grey,
                 ),
 
-                # --------------------------------------------
-                # TOTAL ROW
-                # --------------------------------------------
+             
 
                 (
                     "FONTNAME",
@@ -225,9 +192,7 @@ def generate_category_subcategory_report_pdf(
                     colors.lightgrey,
                 ),
 
-                # --------------------------------------------
-                # Vertical alignment
-                # --------------------------------------------
+             
 
                 (
                     "VALIGN",
@@ -236,9 +201,7 @@ def generate_category_subcategory_report_pdf(
                     "MIDDLE",
                 ),
 
-                # --------------------------------------------
-                # Padding
-                # --------------------------------------------
+             
 
                 (
                     "TOPPADDING",
@@ -257,9 +220,7 @@ def generate_category_subcategory_report_pdf(
         )
     )
 
-    # ========================================================
-    # ADD TABLE TO PDF
-    # ========================================================
+
 
     story.append(table)
 
@@ -267,9 +228,7 @@ def generate_category_subcategory_report_pdf(
         Spacer(1, 20)
     )
 
-    # ========================================================
-    # FOOTER
-    # ========================================================
+  
 
     story.append(
         Paragraph(
@@ -278,9 +237,7 @@ def generate_category_subcategory_report_pdf(
         )
     )
 
-    # ========================================================
-    # BUILD PDF
-    # ========================================================
+ 
 
     document.build(story)
 

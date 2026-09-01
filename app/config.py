@@ -28,10 +28,7 @@ ADMIN_REPORT_EMAIL = os.getenv(
 )
 
 
-# ============================================================
-# ADMIN USER ID (used to route Firebase push notifications
-# raised by sub-vendor actions to the admin dashboard)
-# ============================================================
+
 
 ADMIN_USER_ID = int(
     os.getenv("ADMIN_USER_ID", "1")

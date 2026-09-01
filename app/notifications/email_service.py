@@ -64,29 +64,6 @@ def send_email(to_email: str, subject: str, body: str):
 
 
 
-# ============================================================
-# EMAIL WITH PDF ATTACHMENT
-# ============================================================
-# Used for Admin reports:
-#
-# Daily Report
-# Weekly Report
-# Monthly Report
-# Custom Report (if required)
-#
-# Flow:
-#
-# Report
-#    ↓
-# PDF
-#    ↓
-# bytes
-#    ↓
-# This function
-#    ↓
-# Admin Email
-# ============================================================
-
 def send_email_with_attachment(
     to_email: str,
     subject: str,

@@ -31,9 +31,7 @@ def generate_daily_sub_vendor_activity_report():
 
     try:
 
-        # --------------------------------------------------
-        # DATE RANGE
-        # --------------------------------------------------
+
 
         today = datetime.now().date()
 
@@ -46,9 +44,7 @@ def generate_daily_sub_vendor_activity_report():
             days=1
         )
 
-        # --------------------------------------------------
-        # GET ACTIVITIES
-        # --------------------------------------------------
+
 
         activities = (
             db.query(SubVendorActivityLog)
@@ -65,9 +61,7 @@ def generate_daily_sub_vendor_activity_report():
             .all()
         )
 
-        # --------------------------------------------------
-        # CREATE REPORT DIRECTORY
-        # --------------------------------------------------
+ 
 
         os.makedirs(
             REPORT_DIRECTORY,
@@ -84,9 +78,7 @@ def generate_daily_sub_vendor_activity_report():
             pdf_filename
         )
 
-        # --------------------------------------------------
-        # PDF DOCUMENT
-        # --------------------------------------------------
+
 
         document = SimpleDocTemplate(
             pdf_path,
@@ -106,10 +98,6 @@ def generate_daily_sub_vendor_activity_report():
         normal_style = styles["BodyText"]
 
         elements = []
-
-        # --------------------------------------------------
-        # TITLE
-        # --------------------------------------------------
 
         elements.append(
             Paragraph(
@@ -133,9 +121,7 @@ def generate_daily_sub_vendor_activity_report():
             Spacer(1, 15)
         )
 
-        # --------------------------------------------------
-        # NO ACTIVITY
-        # --------------------------------------------------
+
 
         if not activities:
 
@@ -159,9 +145,6 @@ def generate_daily_sub_vendor_activity_report():
                 Spacer(1, 10)
             )
 
-            # --------------------------------------------------
-            # TABLE DATA
-            # --------------------------------------------------
 
             table_data = [
                 [
@@ -204,9 +187,7 @@ def generate_daily_sub_vendor_activity_report():
                     ]
                 )
 
-            # --------------------------------------------------
-            # TABLE
-            # --------------------------------------------------
+         
 
             table = Table(
                 table_data,
@@ -305,9 +286,6 @@ def generate_daily_sub_vendor_activity_report():
                 Spacer(1, 15)
             )
 
-            # --------------------------------------------------
-            # DETAILED DESCRIPTIONS
-            # --------------------------------------------------
 
             elements.append(
                 Paragraph(
@@ -374,9 +352,7 @@ def generate_daily_sub_vendor_activity_report():
                     Spacer(1, 10)
                 )
 
-        # --------------------------------------------------
-        # BUILD PDF
-        # --------------------------------------------------
+
 
         document.build(elements)
 
@@ -384,9 +360,6 @@ def generate_daily_sub_vendor_activity_report():
             f"PDF report created: {pdf_path}"
         )
 
-        # --------------------------------------------------
-        # SEND EMAIL WITH PDF
-        # --------------------------------------------------
 
         email_sent = send_activity_email_safe(
             subject=(

@@ -22,9 +22,6 @@ router = APIRouter(
 )
 
 
-# ============================================================
-# DATABASE
-# ============================================================
 
 def get_db():
 
@@ -37,9 +34,7 @@ def get_db():
         db.close()
 
 
-# ============================================================
-# REQUEST SCHEMAS
-# ============================================================
+
 
 class NotificationTokenRequest(BaseModel):
 
@@ -57,9 +52,7 @@ class NotificationTestRequest(BaseModel):
     body: str
 
 
-# ============================================================
-# REGISTER FCM TOKEN
-# ============================================================
+
 
 @router.post("/register-token")
 def register_notification_token(
@@ -112,9 +105,7 @@ def register_notification_token(
     }
 
 
-# ============================================================
-# TEST NOTIFICATION
-# ============================================================
+
 
 @router.post("/test")
 def test_notification(
@@ -152,9 +143,7 @@ def test_notification(
             detail=str(e)
         )
 
-# ============================================================
-# TEST NOTIFICATION BY USER ID
-# ============================================================
+
 
 @router.post("/test-user")
 def test_notification_to_user(

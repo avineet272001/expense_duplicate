@@ -367,7 +367,7 @@ async def create_expense(
     amount: Decimal = Form(...),
 
     payment_method: str = Form(...),
-    upi_paid_by: Optional[int] = Form(None),
+    upi_paid_by: Optional[str] = Form(None),
 
     created_by: int = Form(...),
     

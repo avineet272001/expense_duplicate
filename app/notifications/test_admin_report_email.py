@@ -15,9 +15,7 @@ from app.services.payment_report_pdf import (
 
 def test_admin_payment_report_email():
 
-    # ========================================================
-    # TEST DATA
-    # ========================================================
+
 
     report_rows = [
         {
@@ -49,9 +47,6 @@ def test_admin_payment_report_email():
         12
     )
 
-    # ========================================================
-    # GENERATE PDF
-    # ========================================================
 
     pdf_buffer = generate_payment_report_pdf(
         report_rows=report_rows,
@@ -60,9 +55,7 @@ def test_admin_payment_report_email():
         end_date=end_date,
     )
 
-    # ========================================================
-    # CONVERT PDF TO BYTES
-    # ========================================================
+
 
     pdf_bytes = pdf_buffer.getvalue()
 
@@ -72,9 +65,6 @@ def test_admin_payment_report_email():
         "bytes"
     )
 
-    # ========================================================
-    # SEND PDF TO ADMIN
-    # ========================================================
 
     send_email_with_attachment(
 
@@ -125,9 +115,7 @@ def test_admin_payment_report_email():
     )
 
 
-# ============================================================
-# RUN TEST
-# ============================================================
+
 
 if __name__ == "__main__":
 

@@ -13,7 +13,7 @@ from sqlalchemy import (
     UniqueConstraint
 )
 from datetime import datetime
-
+from sqlalchemy import String
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -128,7 +128,7 @@ class Expense(Base):
     )
 
     upi_paid_by = Column(
-       Integer,
+       String,
        nullable=True
      )
 
@@ -283,7 +283,7 @@ class ExpensePayment(Base):
     )
 
     upi_paid_by = Column(
-        Integer,
+        String(50),
         nullable=True
     )
 

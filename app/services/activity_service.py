@@ -15,9 +15,7 @@ def log_sub_vendor_activity(
     status: str = "SUCCESS"
 ):
 
-    # ========================================================
-    # 1. SAVE ACTIVITY IN DATABASE
-    # ========================================================
+
 
     activity = crud.create_sub_vendor_activity(
         db=db,
@@ -29,9 +27,7 @@ def log_sub_vendor_activity(
         status=status
     )
 
-    # ========================================================
-    # 2. SEND EMAIL TO ADMIN
-    # ========================================================
+
 
     email_subject = (
         f"Sub-Vendor Activity - {action}"
