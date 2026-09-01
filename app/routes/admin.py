@@ -329,10 +329,6 @@ def payment_method_details(
 
     return details
 
-
-
-
-
 @router.put(
     "/expenses/{expense_id}/payment-details",
     response_model=schemas.ExpensePaymentResponse,
@@ -523,8 +519,6 @@ def update_expense_status(
         )
 
         return expense
-
-
 
 @router.post(
     "/wallet/transactions",
